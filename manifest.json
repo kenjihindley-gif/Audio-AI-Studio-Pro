@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Audio AI Studio Pro",
+  "version": "6.24.9",
+  "permissions": [
+    "offscreen", 
+    "storage", 
+    "tabCapture", 
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": { 
+      "default_popup": "popup.html",
+      "default_icon": "icon.png"
+  },
+  "icons": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+  },
+  "options_page": "options.html"
+}

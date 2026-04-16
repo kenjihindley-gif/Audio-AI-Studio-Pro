@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Mini-Player</title>
+    <style>
+        :root {
+            --bg-main: #0f0f0f;
+            --bg-surface: #1c1c1c;
+            --text-main: #ffffff;
+            --text-muted: #a3a3a3;
+            --border-color: #2a2a2a;
+            --icon-dark: #e5e5e5;
+            --accent-dark: #1db954; 
+            --accent-hover: #1ed760;
+        }
+
+        body { 
+            width: 100%; height: 100vh; margin: 0; display: flex; flex-direction: column; 
+            background: var(--bg-main); overflow: hidden; font-family: 'Segoe UI', sans-serif;
+            color: var(--text-main); min-width: 200px; min-height: 200px;
+        }
+
+        /* Layout Principal Paisagem */
+        .layout { 
+            display: flex; flex-direction: row; height: 100vh; align-items: center; 
+            padding: 20px 25px; gap: 25px; box-sizing: border-box; width: 100%;
+        }
+        
+        /* Capa (Botão Play/Pause Principal) */
+        .thumbnail-container {
+            position: relative; width: 140px; height: 140px; border-radius: 12px; 
+            background: var(--bg-surface); box-shadow: 0 8px 16px rgba(0,0,0,0.4); 
+            border: 1px solid var(--border-color); cursor: pointer; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+        
+        #track-art {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            object-fit: cover; z-index: 0; display: none; transition: transform 0.3s ease;
+        }
+        .thumbnail-container:hover #track-art { transform: scale(1.05); }
+        .thumbnail-icon { font-size: 3.5rem; z-index: 1; position: relative; color: var(--text-muted); }
+        
+        /* Máscara Escura sobre a Capa */
+        .overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2;
+            background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: white; opacity: 0; transition: all 0.2s ease;
+        }
+        .thumbnail-container:hover .overlay { opacity: 1; background: rgba(0,0,0,0.65); }
+        .overlay.active { opacity: 1; background: rgba(0,0,0,0.7); }
+
+        /* Botões exclusivos do Modo Quadrado */
+        .btn-control-small { 
+            display: none; background: none; border: none; color: white; cursor: pointer; 
+            padding: 5px; transition: transform 0.2s;
+        }
+        .btn-control-small:hover { transform: scale(1.15); color: var(--accent-hover); }
+
+        /* Informações e Barras */
+        .info-container {
+            flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0;
+            padding-right: 15px;
+        }
+        
+        .track-title { 
+            font-weight: 700; font-size: 1.15rem; margin-bottom: 2px; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .track-artist { 
+            font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+        }
+        
+        /* LINHA DE CONTROLOS (Paisagem) */
+        .controls-row { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; position: relative; }
+        .btn-control { 
+            background: none; border: none; cursor: pointer; color: var(--icon-dark); 
+            display: flex; align-items: center; justify-content: center; padding: 5px; transition: color 0.2s;
+        }
+        .btn-control:hover { color: var(--text-main); }
+
+        /* Separador Vertical e Botões de Acão Extras */
+        .action-divider { width: 1px; height: 20px; background: var(--border-color); margin: 0 5px; }
+        .action-btn {
+            background: none; border: none; color: var(--text-muted); cursor: pointer;
+            padding: 6px; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; border-radius: 50%;
+        }
+        .action-btn:hover { color: var(--text-main); transform: scale(1.1); }
+        .action-btn.active { color: var(--accent-dark); }
+        
+        /* Sliders */
+        .bar-container { display: flex; align-items: center; gap: 10px; width: 100%; }
+        .bar-container.vol { margin-bottom: 10px; }
+        .bar-icon, .time-text { color: var(--text-muted); font-size: 0.75rem; flex-shrink: 0; }
+        
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track { 
+            width: 100%; height: 4px; cursor: pointer; background: var(--border-color); border-radius: 2px;
+        }
+        input[type=range]::-webkit-slider-thumb { 
+            height: 12px; width: 12px; border-radius: 50%; background: var(--text-main); 
+            cursor: pointer; -webkit-appearance: none; margin-top: -4px; transition: 0.2s;
+        }
+        input[type=range]:hover::-webkit-slider-thumb { background: var(--accent-hover); transform: scale(1.2); }
+
+        /* MODO QUADRADO (Ativado ao diminuir a largura) */
+        @media (max-width: 400px) {
+            .layout { padding: 0; justify-content: center; }
+            
+            /* Transforma o contentor de informações num overlay invisível a cobrir o ecrã */
+            .info-container { 
+                position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                z-index: 60; pointer-events: none; padding: 0; 
+            }
+            
+            /* Esconde textos, sliders, etc. */
+            .info-container > *:not(.controls-row) { display: none !important; }
+            
+            /* A linha de controlos passa a ocupar o ecrã inteiro invisivelmente */
+            .controls-row { 
+                position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                margin: 0; pointer-events: none; display: block; 
+            }
+            
+            /* Esconde Prev, Next, -10, +10 e Divider da paisagem */
+            .controls-row > *:not(#btn-like):not(#btn-back) { display: none !important; }
+            
+            /* Posiciona o Gostar e o Voltar cirurgicamente nos cantos superiores sobre a imagem! */
+            #btn-like, #btn-back {
+                pointer-events: auto; position: absolute;
+                background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); 
+                color: white; padding: 8px; width: 36px; height: 36px;
+            }
+            #btn-back { top: 12px; left: 12px; }
+            #btn-like { top: 12px; right: 12px; }
+            
+            .thumbnail-container { 
+                width: 100vw; height: 100vh; border-radius: 0; border: none; aspect-ratio: 1/1;
+            }
+            .thumbnail-container:hover .overlay { background: rgba(0,0,0,0.6); }
+            .overlay.active { background: rgba(0,0,0,0.7); }
+            .btn-control-small { display: block; }
+            #btn-play-pause svg { width: 55px; height: 55px; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="layout">
+        <div class="thumbnail-container" id="btn-play-pause" title="Play / Pause">
+            <img id="track-art" src="" alt="Capa">
+            <div class="thumbnail-icon" id="thumbnail-icon">🎵</div>
+            
+            <div class="overlay" id="play-overlay">
+                <button id="btn-prev-small" class="btn-control-small" title="Anterior">
+                    <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16"><path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.52-.302 1.233.043 1.233.696v7.384c0 .653-.713.998-1.233.696L5 8.752V12a.5.5 0 0 1-1 0V4zm7.5.633L5.696 8l5.804 3.367V4.633z"/></svg>
+                </button>
+                
+                <div>
+                    <svg width="45" height="45" fill="currentColor" viewBox="0 0 16 16">
+                        <path id="play-pause-path" d="M10.804 8 5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"/>
+                    </svg>
+                </div>
+
+                <button id="btn-next-small" class="btn-control-small" title="Próxima">
+                    <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16"><path d="M12 12a.5.5 0 0 1-1 0V8.752L4.733 12.388c-.52.302-1.233-.043-1.233-.696V4.308c0-.653.713-.998 1.233-.696L11 7.248V4a.5.5 0 0 1 1 0v8zM4.5 4.633v6.734L10.304 8 4.5 4.633z"/></svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="info-container">
+            
+            <div class="bar-container vol">
+                <svg class="bar-icon" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.536 14.01A8.473 8.473 0 0 0 14.026 8a8.473 8.473 0 0 0-2.49-6.01l-.708.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.197 5.303l.708.707z"/><path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89l.706.706z"/><path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.49 3.49 0 0 1 8 10.475l.707.707zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06z"/></svg>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="1" title="Volume">
+            </div>
+
+            <div class="track-title" id="track-title">Carregando mídia...</div>
+            <div class="track-artist" id="track-domain">Aguarde...</div>
+            
+            <div class="controls-row">
+                <button id="btn-prev" class="btn-control" title="Anterior">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.52-.302 1.233.043 1.233.696v7.384c0 .653-.713.998-1.233.696L5 8.752V12a.5.5 0 0 1-1 0V4zm7.5.633L5.696 8l5.804 3.367V4.633z"/></svg>
+                </button>
+                <button id="btn-minus-10" class="btn-control" title="Voltar 10s">
+                    <svg width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
+                        <text x="8" y="11" font-size="5" text-anchor="middle" font-weight="bold" fill="currentColor">10</text>
+                    </svg>
+                </button>
+                <button id="btn-plus-10" class="btn-control" title="Avançar 10s">
+                    <svg width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                        <text x="8" y="11" font-size="5" text-anchor="middle" font-weight="bold" fill="currentColor">10</text>
+                    </svg>
+                </button>
+                <button id="btn-next" class="btn-control" title="Próxima">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M12 12a.5.5 0 0 1-1 0V8.752L4.733 12.388c-.52.302-1.233-.043-1.233-.696V4.308c0-.653.713-.998 1.233-.696L11 7.248V4a.5.5 0 0 1 1 0v8zM4.5 4.633v6.734L10.304 8 4.5 4.633z"/></svg>
+                </button>
+
+                <div class="action-divider"></div>
+                
+                <button id="btn-like" class="action-btn" title="Gostar">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path id="like-path" d="m8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
+                    </svg>
+                </button>
+                <button id="btn-back" class="action-btn" title="Voltar para a Aba Original">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm11.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5h-2zM4.5 9a.5.5 0 0 0 0-1H3a.5.5 0 0 0 0 1h1.5z"/>
+                    </svg>
+                </button>
+
+            </div>
+            
+            <div class="bar-container time">
+                <span class="time-text" id="time-current">0:00</span>
+                <input type="range" id="time-slider" min="0" max="100" step="1" value="0">
+                <span class="time-text" id="time-total">0:00</span>
+            </div>
+            
+        </div>
+    </div>
+    
+    <script src="miniplayer.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Configurações da Extensão</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { width: 100%; max-width: 600px; margin: 40px auto; }
+        .box { background: var(--bg-surface); padding: 30px; border-radius: 12px; text-align: center; border: 1px solid var(--border-color); }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Permissão de Microfone</h1>
+        <p style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
+            Para usar comandos de voz na extensão, precisamos que você conceda acesso ao microfone. Isso só precisa ser feito uma vez.
+        </p>
+        <button id="btn-request" class="btn-primary" style="padding: 12px 24px; font-size: 1rem;">Conceder Permissão</button>
+        <p id="status-msg" style="margin-top: 20px; font-weight: bold;"></p>
+    </div>
+    <script src="options.js"></script>
+</body>
+</html>
