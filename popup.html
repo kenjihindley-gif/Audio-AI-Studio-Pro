@@ -4,14 +4,6 @@
     <meta charset="UTF-8">
     <title>Audio AI Studio Pro</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .switch .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .3s; border-radius: 34px; border: 1px solid #333; }
-        .switch .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px; background-color: var(--text-muted); transition: .3s; border-radius: 50%; }
-        .switch input:checked + .slider { background-color: var(--accent-dark); border-color: var(--accent-dark); }
-        .switch input:checked + .slider:before { transform: translateX(16px); background-color: white; }
-    </style>
 </head>
 <body>
     
@@ -25,24 +17,17 @@
             
             <div style="display: flex; justify-content: space-evenly; align-items: center;">
                 <div style="text-align: center;">
-                    <img src="https://i.imgur.com/L2I8VnN.png" style="height: 28px; margin-bottom: 5px;">
+                    <img src="https://i.imgur.com/L2I8VnN.png" style="height: 28px; margin-bottom: 5px; filter: grayscale(100%) brightness(1.4);">
                     <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: bold;">Efeito Ligado</div>
                 </div>
                 <div style="text-align: center;">
-                    <img src="https://i.imgur.com/99zg63i.png" style="height: 28px; margin-bottom: 5px; opacity: 0.6;">
+                    <img src="https://i.imgur.com/99zg63i.png" style="height: 28px; margin-bottom: 5px; opacity: 0.6; filter: grayscale(100%);">
                     <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: bold;">Efeito Desligado</div>
                 </div>
             </div>
         </div>
 
-        <div style="background: var(--bg-main); padding: 15px; border-radius: 8px; border: 1px dashed var(--border-color); margin-bottom: 20px; text-align: left; width: 100%;">
-            <p style="font-size: 0.8rem; color: var(--text-main); line-height: 1.5;">
-                <span style="font-weight: bold; color: var(--accent-dark);">⚠️ Permissão Necessária:</span><br>
-                Precisamos de acesso ao microfone para liberar os comandos de Voz por IA e para desbloquear a leitura das <b>Saídas de Áudio</b> (Auscultadores/Colunas) da sua máquina.
-            </p>
-        </div>
-        
-        <button id="btn-grant-permission" class="btn-primary" style="width: 100%; padding: 12px; font-size: 1rem;">Liberar Acesso & Começar</button>
+        <button id="btn-grant-permission" class="btn-primary metal-button" style="width: 100%; padding: 12px; font-size: 1rem;">Liberar Acesso & Começar</button>
         <p id="perm-error" class="hidden" style="color: #ef4444; font-size: 0.8rem; margin-top: 15px; font-weight: bold;">Permissão bloqueada! A redirecionar para as configurações...</p>
     </div>
 
@@ -51,27 +36,20 @@
             <div class="modal-header" id="modal-title">Gerenciar Presets</div>
             <div id="modal-list"></div>
             <div class="flex-row" style="margin-bottom: 0;">
-                <button id="btn-modal-close" class="btn-primary">Concluir</button>
+                <button id="btn-modal-close" class="btn-primary metal-button">Concluir</button>
             </div>
         </div>
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
-        
         <div style="width: 55px;"></div> 
-        
         <div style="flex: 1; display: flex; justify-content: center;">
-            <img id="app-power-btn" src="https://i.imgur.com/L2I8VnN.png" alt="Audio AI Studio Pro" class="app-logo" style="cursor: pointer; transition: transform 0.15s ease, opacity 0.3s ease; height: 35px;" title="Ligar / Desligar Studio">
+            <img id="app-power-btn" src="https://i.imgur.com/L2I8VnN.png" alt="Audio AI Studio Pro" class="app-logo" style="cursor: pointer; transition: transform 0.15s ease, opacity 0.3s ease; height: 35px; filter: grayscale(100%) brightness(1.3);" title="Ligar / Desligar Studio">
         </div>
-        
         <div style="width: 55px; display: flex; justify-content: flex-end;">
-            <button id="btn-miniplayer" style="background: none; border: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); transition: color 0.2s, transform 0.1s;" title="Abrir Mini-Player" onmouseover="this.style.color='var(--text-main)'; this.style.transform='scale(1.05)'" onmouseout="this.style.color='var(--text-muted)'; this.style.transform='scale(1)'">
-                
+            <button id="btn-miniplayer" style="background: none; border: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); transition: color 0.2s, transform 0.1s;" title="Abrir Mini-Player">
                 <span style="font-size: 0.45rem; font-weight: 700; font-family: 'Segoe UI', sans-serif; letter-spacing: 0.5px; margin-bottom: 3px;">MINI-PLAYER</span>
-                
-                <svg width="22" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.052-.072 1.964l-.008.106-.022.26-.01.103c-.048.52-.119 1.023-.22 1.402a2.01 2.01 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.171-.007c-1.11-.049-2.167-.128-2.654-.26a2.01 2.01 0 0 1-1.415-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31.4 31.4 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.003-.052.008-.104.022-.26.01-.104c.048-.519.119-1.023.22 1.402a2.01 2.01 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.172-.006.086-.003.171-.007A99.788 99.788 0 0 1 7.858 2h.193zM6.4 5.209v4.818l4.157-2.408L6.4 5.209z"/>
-                </svg>
+                <svg width="22" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.052-.072 1.964l-.008.106-.022.26-.01.103c-.048.52-.119 1.023-.22 1.402a2.01 2.01 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.171-.007c-1.11-.049-2.167-.128-2.654-.26a2.01 2.01 0 0 1-1.415-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31.4 31.4 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.003-.052.008-.104.022-.26.01-.104c.048-.519.119-1.023.22 1.402a2.01 2.01 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.172-.006.086-.003.171-.007A99.788 99.788 0 0 1 7.858 2h.193zM6.4 5.209v4.818l4.157-2.408L6.4 5.209z"/></svg>
             </button>
         </div>
     </div>
@@ -80,17 +58,11 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <label style="margin-bottom: 0;">Favoritos</label>
             <div style="display: flex; gap: 8px; align-items: center;">
-                <button id="btn-undo" class="btn-icon" style="padding: 4px 8px; border-radius: 4px; opacity: 0.4; cursor: not-allowed; background: var(--bg-surface); border: 1px solid var(--border-color);" title="Desfazer (Ctrl+Z)" disabled>
-                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
-                        <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
-                    </svg>
+                <button id="btn-undo" class="btn-icon" style="padding: 4px 8px; border-radius: 4px; opacity: 0.4; cursor: not-allowed; background: var(--bg-surface); border: 1px solid var(--border-color);" disabled>
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/></svg>
                 </button>
-                <button id="btn-redo" class="btn-icon" style="padding: 4px 8px; border-radius: 4px; opacity: 0.4; cursor: not-allowed; background: var(--bg-surface); border: 1px solid var(--border-color);" title="Refazer (Ctrl+Y)" disabled>
-                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                    </svg>
+                <button id="btn-redo" class="btn-icon" style="padding: 4px 8px; border-radius: 4px; opacity: 0.4; cursor: not-allowed; background: var(--bg-surface); border: 1px solid var(--border-color);" disabled>
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
                 </button>
             </div>
         </div>
@@ -102,45 +74,50 @@
             <div>Frequência e Ganho (Hz/dB)</div>
             <div style="display: flex; gap: 8px; align-items: center;">
                 <span>[2x clique] Ponto • [Del] Apagar</span>
-                <button id="btn-expand" class="btn-icon" title="Expandir/Reduzir Studio">
-                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.707l4.096-4.096a.5.5 0 0 0 0-.707zm4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.793l-4.096 4.096a.5.5 0 0 0 0 .707z"/>
-                    </svg>
+                <button id="btn-expand" class="btn-icon">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.707l4.096-4.096a.5.5 0 0 0 0-.707zm4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.793l-4.096 4.096a.5.5 0 0 0 0 .707z"/></svg>
                 </button>
             </div>
         </div>
         <canvas id="eqGraph" width="350" height="150" style="cursor: crosshair;"></canvas>
     </div>
 
-    <div style="margin-bottom: 15px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
-            <label for="booster-slider" style="margin-bottom: 0;">Volume Booster</label>
-            <span id="booster-value" class="booster-badge">100%</span>
+    <div style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center;">
+        
+        <div style="flex: 0 0 80px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div class="knob-wrapper" id="booster-knob-wrapper" style="--fill-angle: 0deg;">
+                <div class="knob-track"></div>
+                <div class="knob-inner-bg"></div>
+                <div class="knob-metal" id="booster-knob"></div>
+            </div>
+            <span id="booster-value" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-top: 5px;">100%</span>
         </div>
-        <input id="booster-slider" type="range" min="100" max="300" value="100">
-    </div>
 
-    <div style="margin-bottom: 15px;">
-        <label>Presets</label>
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+            <label style="margin-bottom: 4px;">Preset</label>
             <div class="custom-select-container">
-                <div id="preset-trigger" class="custom-select-trigger">
+                <div id="preset-trigger" class="custom-select-trigger metal-select">
                     <span id="preset-trigger-text">Padrão (Flat)</span>
                     <span style="font-size: 0.7rem;">▼</span>
                 </div>
                 <div id="preset-options" class="custom-options"></div>
             </div>
 
-            <div class="dots-container">
-                <button id="btn-dots" class="dots-btn">⋮</button>
-                <div id="dots-dropdown" class="dots-menu hidden">
-                    <button id="btn-menu-move">Mover (Ordem)</button>
-                    <button id="btn-menu-edit">Editar Nomes</button>
-                    <button id="btn-menu-delete">Excluir Presets</button>
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 10px;">
+                <div class="dots-container">
+                    <button id="btn-dots" class="dots-btn">⋮</button>
+                    <div id="dots-dropdown" class="dots-menu hidden">
+                        <button id="btn-menu-move">Mover (Ordem)</button>
+                        <button id="btn-menu-edit">Editar Nomes</button>
+                        <button id="btn-menu-delete">Excluir Presets</button>
+                    </div>
                 </div>
+                
+                <input type="file" id="file-input" accept=".json" class="hidden">
+                <button id="btn-upload" class="metal-button" style="flex: 1.2; padding: 6px 2px; font-size: 0.7rem;" title="Subir Arquivo">↑ Subir</button>
+                <button id="btn-download" class="metal-button" style="flex: 1.2; padding: 6px 2px; font-size: 0.7rem;" title="Download Preset">↓ Down</button>
+                <button id="btn-show-save" class="metal-button" style="flex: 1.5; padding: 6px 2px; font-size: 0.7rem;">Salvar +</button>
             </div>
-
-            <button id="btn-show-save" class="btn-white" style="flex: 1; padding: 8px;">Salvar +</button>
         </div>
     </div>
 
@@ -148,34 +125,63 @@
         <label for="new-preset-name">Nome do novo Preset</label>
         <div style="display: flex; gap: 8px;">
             <input type="text" id="new-preset-name" placeholder="Ex: Master Bass">
-            <button id="btn-save-preset" class="btn-primary" style="flex: none; width: 50px;">OK</button>
+            <button id="btn-save-preset" class="btn-primary metal-button" style="flex: none; width: 50px; padding: 8px;">OK</button>
         </div>
     </div>
 
-    <div class="flex-row" style="margin-bottom: 15px;">
-        <input type="file" id="file-input" accept=".json" class="hidden">
-        <button id="btn-upload" class="btn-white"><span style="margin-right: 5px;">↑</span> Subir arquivo</button>
-        <button id="btn-download" class="btn-primary"><span style="margin-right: 5px;">↓</span> Download</button>
-    </div>
-
-    <div style="margin-bottom: 15px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <label for="output-select" style="margin-bottom: 0;">Saída de Áudio da Guia</label>
+    <div style="margin-bottom: 15px; background: var(--bg-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <label style="margin-bottom: 0; font-size: 0.85rem; color: var(--text-main);">DUAL OUTPUT ROUTING</label>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Duplicar saída</span>
-                <label class="switch" title="Ativar duas saídas de áudio simultâneas">
-                    <input type="checkbox" id="duplicate-output-switch">
-                    <span class="slider"></span>
-                </label>
+                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Duplicar saída</span>
+                <label class="switch"><input type="checkbox" id="duplicate-output-switch"><span class="slider"></span></label>
             </div>
         </div>
-        <div style="display: flex; gap: 10px;" id="output-container">
-            <select id="output-select" style="flex: 1;">
-                <option value="">Padrão do Sistema</option>
-            </select>
-            <select id="output-select-2" class="hidden" style="flex: 1;" title="Segunda Saída de Áudio">
-                <option value="">Nenhuma</option>
-            </select>
+        
+        <div id="routing-cards-container" style="display: flex; gap: 10px; width: 100%;">
+            <div class="routing-card" id="card-output-1">
+                <div class="routing-card-header">
+                    <label class="routing-card-title">OUTPUT 1</label>
+                    <select id="output-select" class="routing-select metal-select" style="margin-top: 5px;">
+                        <option value="">Padrão do Sistema</option>
+                    </select>
+                </div>
+                <div class="routing-card-body">
+                    <div id="icon-out-1" class="dynamic-icon"></div>
+                </div>
+                <div class="routing-card-controls hidden" id="controls-out-1">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="routing-label dynamic-label" id="label-out-1">DISPOSITIVO 1</span>
+                        <label class="switch"><input type="checkbox" id="bypass-out-1" checked><span class="slider"></span></label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">🔊</span>
+                        <input type="range" id="vol-out-1" min="0" max="100" value="100" class="metal-slider" style="--vol-percent: 100%;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="routing-card hidden" id="card-output-2">
+                <div class="routing-card-header">
+                    <label class="routing-card-title">OUTPUT 2</label>
+                    <select id="output-select-2" class="routing-select metal-select" style="margin-top: 5px;">
+                        <option value="">Nenhuma</option>
+                    </select>
+                </div>
+                <div class="routing-card-body">
+                    <div id="icon-out-2" class="dynamic-icon"></div>
+                </div>
+                <div class="routing-card-controls hidden" id="controls-out-2">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="routing-label dynamic-label" id="label-out-2">DISPOSITIVO 2</span>
+                        <label class="switch"><input type="checkbox" id="bypass-out-2" checked><span class="slider"></span></label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">🔊</span>
+                        <input type="range" id="vol-out-2" min="0" max="100" value="100" class="metal-slider" style="--vol-percent: 100%;">
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -186,10 +192,7 @@
             <label for="ai-input" style="margin-bottom: 0;">Comando com IA ou Voz</label>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Nova curva</span>
-                <label class="switch" title="Ligado: Cria do Zero | Desligado: Modifica o Preset Atual">
-                    <input type="checkbox" id="ai-new-curve-switch">
-                    <span class="slider"></span>
-                </label>
+                <label class="switch"><input type="checkbox" id="ai-new-curve-switch"><span class="slider"></span></label>
             </div>
         </div>
         
@@ -203,7 +206,7 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
-            <button id="btn-send-ai" class="btn-primary">Ajustar com IA</button>
+            <button id="btn-send-ai" class="metal-button">Ajustar com IA</button>
             <span id="ai-status" class="status-text hidden" style="color: var(--text-muted);">Processando...</span>
             <span id="mic-status" class="status-text hidden" style="color: var(--text-muted); font-weight: bold;">Ouvindo...</span>
         </div>

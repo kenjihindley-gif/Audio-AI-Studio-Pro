@@ -11,8 +11,9 @@
             --text-muted: #a3a3a3;
             --border-color: #2a2a2a;
             --icon-dark: #e5e5e5;
-            --accent-dark: #1db954; 
-            --accent-hover: #1ed760;
+            /* Novas cores baseadas em tons neutros (aço) em vez de verde */
+            --accent-dark: #6b7280; 
+            --accent-hover: #9ca3af;
         }
 
         body { 
@@ -90,9 +91,9 @@
             transition: all 0.2s; border-radius: 50%;
         }
         .action-btn:hover { color: var(--text-main); transform: scale(1.1); }
-        .action-btn.active { color: var(--accent-dark); }
+        .action-btn.active { color: var(--accent-hover); }
         
-        /* Sliders */
+        /* Sliders - Agora cinzas como o resto */
         .bar-container { display: flex; align-items: center; gap: 10px; width: 100%; }
         .bar-container.vol { margin-bottom: 10px; }
         .bar-icon, .time-text { color: var(--text-muted); font-size: 0.75rem; flex-shrink: 0; }

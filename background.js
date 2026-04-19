@@ -1,23 +1,33 @@
 const GEMINI_API_KEY = "AIzaSyCW1SHZ-XMGWGx5yFG7CJrXPpTWlJTSDxw";
 const capturedTabs = new Set(); // Guarda o ID de todas as abas que têm o áudio a ser processado
 
+// Quando instala ou atualiza a extensão
 chrome.runtime.onInstalled.addListener(async () => {
   await setupOffscreenDocument('offscreen.html');
 });
 
+// CORREÇÃO PARA O OPERA/CHROME RESTAURAR ABAS: Garante a recriação do Motor Oculto ao iniciar o navegador
+chrome.runtime.onStartup.addListener(async () => {
+  await setupOffscreenDocument('offscreen.html');
+});
+
 async function setupOffscreenDocument(path) {
-  const offscreenUrl = chrome.runtime.getURL(path);
-  const existingContexts = await chrome.runtime.getContexts({
-    contextTypes: ['OFFSCREEN_DOCUMENT'],
-    documentUrls: [offscreenUrl]
-  });
-  if (existingContexts.length > 0) return;
-  
-  await chrome.offscreen.createDocument({ 
-      url: path, 
-      reasons: ['AUDIO_PLAYBACK', 'USER_MEDIA'], 
-      justification: 'Processamento de EQ individual por aba' 
-  });
+  try {
+      const offscreenUrl = chrome.runtime.getURL(path);
+      const existingContexts = await chrome.runtime.getContexts({
+        contextTypes: ['OFFSCREEN_DOCUMENT'],
+        documentUrls: [offscreenUrl]
+      });
+      if (existingContexts.length > 0) return;
+      
+      await chrome.offscreen.createDocument({ 
+          url: path, 
+          reasons: ['AUDIO_PLAYBACK', 'USER_MEDIA'], 
+          justification: 'Processamento de EQ individual por aba' 
+      });
+  } catch (err) {
+      console.warn("Aviso ao criar Offscreen Document:", err);
+  }
 }
 
 // Limpa a memória do motor quando o utilizador fecha a aba do Chrome
@@ -31,7 +41,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Quando o popup abre, ele avisa qual é a aba atual
     if (message.action === 'init_tab_capture') {
-        captureTab(message.tabId);
+        // CORREÇÃO: Sempre validar/iniciar o Offscreen Document antes de tentar capturar a aba restaurada
+        setupOffscreenDocument('offscreen.html').then(() => {
+            captureTab(message.tabId);
+        });
     }
     
     // Lógica da Inteligência Artificial ATUALIZADA

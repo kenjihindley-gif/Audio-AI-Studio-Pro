@@ -33,8 +33,13 @@ btnGrantPerm.addEventListener('click', async () => {
 // --- Seletores da Interface ---
 const appPowerBtn = document.getElementById('app-power-btn'); 
 const btnMiniplayer = document.getElementById('btn-miniplayer'); 
-const boosterSlider = document.getElementById('booster-slider');
+
+// Válvula Nova
+const boosterKnobWrapper = document.getElementById('booster-knob-wrapper');
+const boosterKnob = document.getElementById('booster-knob');
 const boosterValueDisplay = document.getElementById('booster-value');
+
+// Presets e Botões
 const btnShowSave = document.getElementById('btn-show-save');
 const saveContainer = document.getElementById('save-preset-container');
 const newPresetName = document.getElementById('new-preset-name');
@@ -43,12 +48,23 @@ const btnUpload = document.getElementById('btn-upload');
 const fileInput = document.getElementById('file-input');
 const btnDownload = document.getElementById('btn-download');
 
-// Saída Dupla
+// Roteamento Duplo e Controlos Individuais
 const outputSelect = document.getElementById('output-select');
 const outputSelect2 = document.getElementById('output-select-2');
 const duplicateSwitch = document.getElementById('duplicate-output-switch');
+const cardOutput2 = document.getElementById('card-output-2');
+const controlsOut1 = document.getElementById('controls-out-1');
+const controlsOut2 = document.getElementById('controls-out-2');
+const volOut1 = document.getElementById('vol-out-1');
+const volOut2 = document.getElementById('vol-out-2');
+const bypassOut1 = document.getElementById('bypass-out-1');
+const bypassOut2 = document.getElementById('bypass-out-2');
+const iconOut1 = document.getElementById('icon-out-1');
+const iconOut2 = document.getElementById('icon-out-2');
+const labelOut1 = document.getElementById('label-out-1');
+const labelOut2 = document.getElementById('label-out-2');
 
-// IA
+// IA e Gráfico
 const btnExpand = document.getElementById('btn-expand'); 
 const canvas = document.getElementById('eqGraph');
 const ctx = canvas.getContext('2d');
@@ -74,305 +90,169 @@ const btnModalClose = document.getElementById('btn-modal-close');
 let currentTabId = null;
 let currentSelectedPresetKey = 'Padrao'; 
 
+// Ícones SVG Dinâmicos
+const svgHeadphone = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>`;
+const svgSpeaker = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><circle cx="12" cy="14" r="4"></circle><line x1="12" y1="6" x2="12.01" y2="6"></line></svg>`;
+
 // --- Lógica do Botão Ligar/Desligar (Power) ---
 let isAppOn = true;
 
 chrome.storage.local.get(['isAppOn'], (res) => {
-    if (res.isAppOn !== undefined) {
-        isAppOn = res.isAppOn;
-        updatePowerUI();
-    }
+    if (res.isAppOn !== undefined) { isAppOn = res.isAppOn; updatePowerUI(); }
 });
 
 function updatePowerUI() {
     if (isAppOn) {
-        appPowerBtn.src = "https://i.imgur.com/L2I8VnN.png";
-        appPowerBtn.style.opacity = "1";
-        canvas.style.opacity = "1"; 
+        appPowerBtn.src = "https://i.imgur.com/L2I8VnN.png"; appPowerBtn.style.opacity = "1"; canvas.style.opacity = "1"; 
     } else {
-        appPowerBtn.src = "https://i.imgur.com/99zg63i.png";
-        appPowerBtn.style.opacity = "0.6";
-        canvas.style.opacity = "0.4"; 
+        appPowerBtn.src = "https://i.imgur.com/99zg63i.png"; appPowerBtn.style.opacity = "0.6"; canvas.style.opacity = "0.4"; 
     }
     sendToEngine({ action: 'set_power_state', isPowerOn: isAppOn });
 }
 
 appPowerBtn.addEventListener('click', () => {
-    isAppOn = !isAppOn;
-    chrome.storage.local.set({ isAppOn: isAppOn });
+    isAppOn = !isAppOn; chrome.storage.local.set({ isAppOn: isAppOn });
     updatePowerUI();
-    appPowerBtn.style.transform = 'scale(0.9)';
-    setTimeout(() => appPowerBtn.style.transform = 'scale(1)', 150);
+    appPowerBtn.style.transform = 'scale(0.9)'; setTimeout(() => appPowerBtn.style.transform = 'scale(1)', 150);
 });
 
 // --- Lógica do Botão Mini-Player ---
 if (btnMiniplayer) {
     btnMiniplayer.addEventListener('click', () => {
         if (currentTabId !== null) {
-            chrome.windows.create({
-                url: `miniplayer.html?tabId=${currentTabId}`,
-                type: 'popup',
-                width: 540,   
-                height: 220,  
-                focused: true
-            });
+            chrome.windows.create({ url: `miniplayer.html?tabId=${currentTabId}`, type: 'popup', width: 540, height: 220, focused: true });
             window.close(); 
         }
     });
 }
 
 // --- HISTÓRICO DE COMANDOS (UNDO / REDO) ---
-let eqHistory = [];
-let historyIndex = -1;
-const MAX_HISTORY = 10;
-const btnUndo = document.getElementById('btn-undo');
-const btnRedo = document.getElementById('btn-redo');
+let eqHistory = []; let historyIndex = -1; const MAX_HISTORY = 10;
+const btnUndo = document.getElementById('btn-undo'); const btnRedo = document.getElementById('btn-redo');
 
 function updateHistoryButtons() {
-    if (historyIndex > 0) {
-        btnUndo.disabled = false; btnUndo.style.opacity = '1'; btnUndo.style.cursor = 'pointer';
-    } else {
-        btnUndo.disabled = true; btnUndo.style.opacity = '0.4'; btnUndo.style.cursor = 'not-allowed';
-    }
-    if (historyIndex < eqHistory.length - 1) {
-        btnRedo.disabled = false; btnRedo.style.opacity = '1'; btnRedo.style.cursor = 'pointer';
-    } else {
-        btnRedo.disabled = true; btnRedo.style.opacity = '0.4'; btnRedo.style.cursor = 'not-allowed';
-    }
+    if (historyIndex > 0) { btnUndo.disabled = false; btnUndo.style.opacity = '1'; btnUndo.style.cursor = 'pointer'; } 
+    else { btnUndo.disabled = true; btnUndo.style.opacity = '0.4'; btnUndo.style.cursor = 'not-allowed'; }
+    if (historyIndex < eqHistory.length - 1) { btnRedo.disabled = false; btnRedo.style.opacity = '1'; btnRedo.style.cursor = 'pointer'; } 
+    else { btnRedo.disabled = true; btnRedo.style.opacity = '0.4'; btnRedo.style.cursor = 'not-allowed'; }
 }
 
 function saveHistoryState(pointsToSave) {
     const currentStateString = JSON.stringify(pointsToSave);
     if (historyIndex >= 0 && JSON.stringify(eqHistory[historyIndex]) === currentStateString) return;
-
-    if (historyIndex < eqHistory.length - 1) {
-        eqHistory = eqHistory.slice(0, historyIndex + 1);
-    }
-
+    if (historyIndex < eqHistory.length - 1) eqHistory = eqHistory.slice(0, historyIndex + 1);
     eqHistory.push(JSON.parse(currentStateString)); 
-    
-    if (eqHistory.length > MAX_HISTORY) {
-        eqHistory.shift();
-    } else {
-        historyIndex++;
-    }
+    if (eqHistory.length > MAX_HISTORY) eqHistory.shift(); else historyIndex++;
     updateHistoryButtons();
 }
 
-function doUndo() {
-    if (historyIndex > 0) {
-        historyIndex--;
-        eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex]));
-        sendPointsToEngine(true);
-        updateHistoryButtons();
-    }
-}
-
-function doRedo() {
-    if (historyIndex < eqHistory.length - 1) {
-        historyIndex++;
-        eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex]));
-        sendPointsToEngine(true);
-        updateHistoryButtons();
-    }
-}
-
-btnUndo.addEventListener('click', doUndo);
-btnRedo.addEventListener('click', doRedo);
+function doUndo() { if (historyIndex > 0) { historyIndex--; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); } }
+function doRedo() { if (historyIndex < eqHistory.length - 1) { historyIndex++; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); } }
+btnUndo.addEventListener('click', doUndo); btnRedo.addEventListener('click', doRedo);
 
 
 const defaultPresets = { 
     'Padrao': [], 
     'Pop Rock': [{f:150,g:2,q:1.2},{f:400,g:1,q:1.2},{f:1000,g:-1,q:1.2},{f:3000,g:1,q:1.2},{f:8000,g:2,q:1.2}], 
     'Rock': [{f:150,g:5,q:1.2},{f:400,g:2,q:1.2},{f:1000,g:-4,q:1.2},{f:3000,g:3,q:1.2},{f:8000,g:5,q:1.2}], 
-    'Vocal': [{f:150,g:-3,q:1.2},{f:400,g:-1,q:1.2},{f:1000,g:4,q:1.2},{f:3000,g:2,q:1.2},{f:8000,g:-2,q:1.2}], 
     'Bass Booster': [{f:150,g:8,q:1.2},{f:400,g:4,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:0,q:1.2},{f:8000,g:0,q:1.2}], 
-    'Hip Hop': [{f:150,g:6,q:1.2},{f:400,g:2,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:2,q:1.2},{f:8000,g:4,q:1.2}],
-    'Acustico': [{f:150,g:2,q:1.2},{f:400,g:2,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:1,q:1.2},{f:8000,g:3,q:1.2}],
-    'Classico': [{f:150,g:0,q:1.2},{f:400,g:0,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:1,q:1.2},{f:8000,g:2,q:1.2}],
-    'Danca': [{f:150,g:6,q:1.2},{f:400,g:0,q:1.2},{f:1000,g:2,q:1.2},{f:3000,g:4,q:1.2},{f:8000,g:1,q:1.2}],
-    'Eletronica': [{f:150,g:5,q:1.2},{f:400,g:-2,q:1.2},{f:1000,g:1,q:1.2},{f:3000,g:4,q:1.2},{f:8000,g:5,q:1.2}],
-    'Jazz': [{f:150,g:3,q:1.2},{f:400,g:2,q:1.2},{f:1000,g:-2,q:1.2},{f:3000,g:2,q:1.2},{f:8000,g:3,q:1.2}],
-    'R&B': [{f:150,g:3,q:1.2},{f:400,g:1,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:2,q:1.2},{f:8000,g:3,q:1.2}],
     'Treble Booster': [{f:150,g:0,q:1.2},{f:400,g:0,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:4,q:1.2},{f:8000,g:8,q:1.2}],
-    'Piano': [{f:150,g:2,q:1.2},{f:400,g:3,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:2,q:1.2},{f:8000,g:3,q:1.2}],
-    'Metal': [{f:150,g:5,q:1.2},{f:400,g:-3,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:4,q:1.2},{f:8000,g:5,q:1.2}]
 };
 
-const presetIcons = {
-    'Pop Rock': '🎸', 'Rock': '🤘', 'Vocal': '🎤', 'Bass Booster': '🔈',
-    'Hip Hop': '🧢', 'Acustico': '🎸', 'Classico': '🎻', 'Danca': '🪩',
-    'Eletronica': '🎛️', 'Jazz': '🎷', 'R&B': '🎙️', 'Treble Booster': '🔊',
-    'Piano': '🎹', 'Metal': '⚡'
-};
+const presetIcons = { 'Pop Rock': '🎸', 'Rock': '🤘', 'Vocal': '🎤', 'Bass Booster': '🔈', 'Treble Booster': '🔊' };
 
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0] && !tabs[0].url.startsWith('chrome://')) {
-        currentTabId = tabs[0].id;
-        chrome.runtime.sendMessage({ action: 'init_tab_capture', tabId: currentTabId });
+        currentTabId = tabs[0].id; chrome.runtime.sendMessage({ action: 'init_tab_capture', tabId: currentTabId });
     }
 });
-function sendToEngine(msgParams, callback) {
-    if (currentTabId !== null) chrome.runtime.sendMessage({ ...msgParams, tabId: currentTabId }, callback);
-}
+function sendToEngine(msgParams, callback) { if (currentTabId !== null) chrome.runtime.sendMessage({ ...msgParams, tabId: currentTabId }, callback); }
 
 // --- Menu Dropdown e Favoritos ---
 function getStorageData(callback) {
     chrome.storage.local.get(['customPresets', 'customOrder', 'favorites'], (res) => {
-        let custom = res.customPresets || {};
-        let order = res.customOrder || Object.keys(custom);
-        let favs = res.favorites || [];
-        order = order.filter(k => custom[k]); 
-        Object.keys(custom).forEach(k => { if(!order.includes(k)) order.push(k); });
+        let custom = res.customPresets || {}; let order = res.customOrder || Object.keys(custom); let favs = res.favorites || [];
+        order = order.filter(k => custom[k]); Object.keys(custom).forEach(k => { if(!order.includes(k)) order.push(k); });
         callback(custom, order, favs);
     });
 }
-
-function saveStorageData(custom, order, favs, callback) {
-    chrome.storage.local.set({ customPresets: custom, customOrder: order, favorites: favs }, callback);
-}
+function saveStorageData(custom, order, favs, callback) { chrome.storage.local.set({ customPresets: custom, customOrder: order, favorites: favs }, callback); }
 
 function renderUI() {
-    getStorageData((custom, order, favs) => {
-        renderFavoritesBar(favs);
-        renderDropdownList(custom, order, favs);
-        updateTriggerText();
-    });
+    getStorageData((custom, order, favs) => { renderFavoritesBar(favs); renderDropdownList(custom, order, favs); updateTriggerText(); });
 }
 
 function renderFavoritesBar(favs) {
     favBar.innerHTML = '';
     if (favs.length === 0) { favBar.classList.add('hidden'); return; }
     favBar.classList.remove('hidden');
-    
     favs.forEach(favKey => {
         const btn = document.createElement('button');
         const isActive = (currentSelectedPresetKey === favKey);
         btn.className = `btn-fav ${isActive ? 'active' : ''}`;
-        
         btn.textContent = favKey.replace('custom_', '');
-        btn.onclick = () => {
-            if (isActive) applyPreset('Padrao');
-            else applyPreset(favKey);
-            renderUI();
-        };
+        btn.onclick = () => { if (isActive) applyPreset('Padrao'); else applyPreset(favKey); renderUI(); };
         favBar.appendChild(btn);
     });
 }
 
 function renderDropdownList(custom, order, favs) {
     presetOptions.innerHTML = '';
-    
     const createItem = (key, displayName, icon) => {
         const div = document.createElement('div'); div.className = 'custom-option';
         const isFav = favs.includes(key);
-        
-        const starHtml = key === 'Padrao' ? 
-            `<div style="width: 44px;"></div>` : 
-            `<div class="star-btn-container"><button class="star-btn ${isFav ? 'active' : ''}">${isFav ? '★' : '☆'}</button></div>`;
-
-        div.innerHTML = `
-            <div class="preset-info">
-                <span class="preset-icon monochrome-icon">${icon}</span> 
-                <span>${displayName}</span>
-            </div>
-            ${starHtml}
-        `;
-        
-        div.querySelector('.preset-info').addEventListener('click', () => {
-            selectPresetFromDropdown(key);
-        });
-        
-        if (key !== 'Padrao') {
-            div.querySelector('.star-btn-container').addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                toggleFavorite(key, favs, custom, order);
-            });
-        }
-        
+        const starHtml = key === 'Padrao' ? `<div style="width: 44px;"></div>` : `<div class="star-btn-container"><button class="star-btn ${isFav ? 'active' : ''}">${isFav ? '★' : '☆'}</button></div>`;
+        div.innerHTML = `<div class="preset-info"><span class="preset-icon monochrome-icon">${icon}</span> <span>${displayName}</span></div>${starHtml}`;
+        div.querySelector('.preset-info').addEventListener('click', () => { selectPresetFromDropdown(key); });
+        if (key !== 'Padrao') { div.querySelector('.star-btn-container').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(key, favs, custom, order); }); }
         presetOptions.appendChild(div);
     };
 
     createItem('Padrao', 'Padrão (Flat)', '🎚️');
-    
-    order.forEach(key => {
-        const data = custom[key];
-        const type = data.type || 'created'; 
-        const icon = type === 'imported' ? '⬆️' : '🔧';
-        createItem(`custom_${key}`, key, icon);
-    });
-    
-    Object.keys(defaultPresets).forEach(key => {
-        if (key !== 'Padrao') createItem(key, key, presetIcons[key] || '🎵');
-    });
+    order.forEach(key => { const data = custom[key]; const type = data.type || 'created'; const icon = type === 'imported' ? '⬆️' : '🔧'; createItem(`custom_${key}`, key, icon); });
+    Object.keys(defaultPresets).forEach(key => { if (key !== 'Padrao') createItem(key, key, presetIcons[key] || '🎵'); });
 }
 
 function toggleFavorite(key, favs, custom, order) {
-    if (favs.includes(key)) {
-        favs = favs.filter(f => f !== key);
-    } else {
-        if (favs.length >= 3) { alert("Pode ter no máximo 3 favoritos!"); return; }
-        favs.push(key);
-    }
+    if (favs.includes(key)) favs = favs.filter(f => f !== key);
+    else { if (favs.length >= 3) { alert("Pode ter no máximo 3 favoritos!"); return; } favs.push(key); }
     saveStorageData(custom, order, favs, renderUI);
 }
 
-function selectPresetFromDropdown(key) {
-    presetOptions.classList.remove('open');
-    applyPreset(key);
-    renderUI();
-}
+function selectPresetFromDropdown(key) { presetOptions.classList.remove('open'); applyPreset(key); renderUI(); }
 
 function applyPreset(key) {
-    currentSelectedPresetKey = key;
-    selectedPointIndex = -1;
-    
+    currentSelectedPresetKey = key; selectedPointIndex = -1;
     if (key.startsWith('custom_')) {
         const name = key.replace('custom_', '');
-        getStorageData((custom) => {
-            if(custom[name]) {
-                eqPoints = Array.isArray(custom[name]) ? custom[name] : custom[name].points;
-                sendPointsToEngine(true);
-                saveHistoryState(eqPoints); // Salva histórico
-            }
-        });
+        getStorageData((custom) => { if(custom[name]) { eqPoints = Array.isArray(custom[name]) ? custom[name] : custom[name].points; sendPointsToEngine(true); saveHistoryState(eqPoints); } });
     } else {
-        eqPoints = JSON.parse(JSON.stringify(defaultPresets[key]));
-        sendPointsToEngine(true);
-        saveHistoryState(eqPoints); // Salva histórico
+        eqPoints = JSON.parse(JSON.stringify(defaultPresets[key])); sendPointsToEngine(true); saveHistoryState(eqPoints);
     }
 }
 
 function updateTriggerText() {
-    let name = currentSelectedPresetKey;
-    if (name.startsWith('custom_')) name = name.replace('custom_', '');
+    let name = currentSelectedPresetKey; if (name.startsWith('custom_')) name = name.replace('custom_', '');
     presetTriggerText.textContent = name;
 }
 
 presetTrigger.addEventListener('click', () => presetOptions.classList.toggle('open'));
 btnDots.addEventListener('click', () => dotsDropdown.classList.toggle('hidden'));
-
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.custom-select-container')) presetOptions.classList.remove('open');
     if (!e.target.closest('.dots-container')) dotsDropdown.classList.add('hidden');
 });
 
-// --- GERENCIADOR MODAL ---
+// --- Modal de Gestão ---
 function openModal(mode) {
+    // Código de modal padronizado mantido
     getStorageData((custom, order, favs) => {
-        modalList.innerHTML = '';
-        
-        modalOverlay.classList.remove('hidden');
-        modalOverlay.style.display = 'flex';
-        
+        modalList.innerHTML = ''; modalOverlay.classList.remove('hidden'); modalOverlay.style.display = 'flex';
         if (order.length === 0) { 
             modalTitle.textContent = "Gerenciar Presets";
-            modalList.innerHTML = `<div style="text-align:center; padding: 25px 10px; color: var(--text-muted); font-size: 0.9rem;">
-                Nenhum preset personalizado encontrado.<br><br>Crie um novo em "Salvar +" ou importe um ficheiro.
-            </div>`;
+            modalList.innerHTML = `<div style="text-align:center; padding: 25px 10px; color: var(--text-muted); font-size: 0.9rem;">Nenhum preset personalizado encontrado.</div>`;
             return; 
         }
-        
         if (mode === 'move') {
             modalTitle.textContent = "Mover Ordem";
             order.forEach((key, idx) => {
@@ -392,9 +272,7 @@ function openModal(mode) {
                 div.querySelector('.modal-btn').onclick = () => {
                     const newKey = div.querySelector('input').value.trim();
                     if (!newKey || newKey === key || custom[newKey]) return;
-                    
-                    custom[newKey] = custom[key]; delete custom[key];
-                    order[order.indexOf(key)] = newKey;
+                    custom[newKey] = custom[key]; delete custom[key]; order[order.indexOf(key)] = newKey;
                     if (favs.includes(`custom_${key}`)) favs[favs.indexOf(`custom_${key}`)] = `custom_${newKey}`;
                     if (currentSelectedPresetKey === `custom_${key}`) currentSelectedPresetKey = `custom_${newKey}`;
                     saveStorageData(custom, order, favs, () => openModal('edit'));
@@ -417,20 +295,13 @@ function openModal(mode) {
         }
     });
 }
-
 document.getElementById('btn-menu-move').addEventListener('click', () => { openModal('move'); dotsDropdown.classList.add('hidden'); });
 document.getElementById('btn-menu-edit').addEventListener('click', () => { openModal('edit'); dotsDropdown.classList.add('hidden'); });
 document.getElementById('btn-menu-delete').addEventListener('click', () => { openModal('delete'); dotsDropdown.classList.add('hidden'); });
-
-btnModalClose.addEventListener('click', () => { 
-    modalOverlay.classList.add('hidden'); 
-    modalOverlay.style.display = 'none'; 
-    renderUI(); 
-});
-
+btnModalClose.addEventListener('click', () => { modalOverlay.classList.add('hidden'); modalOverlay.style.display = 'none'; renderUI(); });
 renderUI();
 
-// --- Expandir/Reduzir a Interface ---
+// --- Expandir Interface ---
 let isExpanded = false;
 function applyExpandState(expanded) {
     isExpanded = expanded;
@@ -439,19 +310,15 @@ function applyExpandState(expanded) {
     drawGraph();
 }
 chrome.storage.local.get(['isExpanded'], (res) => { if (res.isExpanded) applyExpandState(true); });
-btnExpand.addEventListener('click', () => {
-    const newState = !isExpanded; chrome.storage.local.set({ isExpanded: newState }); applyExpandState(newState);
-});
+btnExpand.addEventListener('click', () => { const newState = !isExpanded; chrome.storage.local.set({ isExpanded: newState }); applyExpandState(newState); });
 
-// --- Lógica de Dupla Saída de Áudio ---
+// --- ROTEAMENTO E CONTROLOS INDIVIDUAIS (NOVO DESIGN) ---
 async function loadAudioOutputs() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
         
-        outputSelect.innerHTML = '';
-        outputSelect2.innerHTML = '';
-
+        outputSelect.innerHTML = ''; outputSelect2.innerHTML = '';
         const defaultOpt = document.createElement('option'); defaultOpt.value = ""; defaultOpt.textContent = "Padrão do Sistema"; outputSelect.appendChild(defaultOpt);
         const defaultOpt2 = document.createElement('option'); defaultOpt2.value = ""; defaultOpt2.textContent = "Selecione a 2ª Saída"; outputSelect2.appendChild(defaultOpt2);
 
@@ -460,45 +327,63 @@ async function loadAudioOutputs() {
             const opt1 = document.createElement('option'); opt1.value = device.deviceId; opt1.textContent = device.label || `Saída ${outputSelect.length}`; outputSelect.appendChild(opt1);
             const opt2 = document.createElement('option'); opt2.value = device.deviceId; opt2.textContent = device.label || `Saída ${outputSelect2.length}`; outputSelect2.appendChild(opt2);
         });
-        
-        updateOutputExclusion();
+        updateOutputVisuals();
     } catch (err) {}
 }
 
-function updateOutputExclusion() {
-    const val1 = outputSelect.value;
-    const val2 = outputSelect2.value;
+function updateOutputVisuals() {
+    // Atualiza exclusão de opções
+    const val1 = outputSelect.value; const val2 = outputSelect2.value;
+    Array.from(outputSelect.options).forEach(opt => { opt.disabled = (opt.value !== "" && opt.value === val2); });
+    Array.from(outputSelect2.options).forEach(opt => { opt.disabled = (opt.value !== "" && opt.value === val1); });
 
-    Array.from(outputSelect.options).forEach(opt => {
-        if (opt.value !== "" && opt.value === val2) opt.disabled = true;
-        else opt.disabled = false;
-    });
+    // Atualiza Ícones de Acordo com o Nome do Dispositivo
+    const text1 = outputSelect.options[outputSelect.selectedIndex]?.text.toLowerCase() || "";
+    iconOut1.innerHTML = (text1.includes('headphone') || text1.includes('auscultador') || text1.includes('fone') || text1.includes('airpod')) ? svgHeadphone : svgSpeaker;
+    labelOut1.textContent = outputSelect.options[outputSelect.selectedIndex]?.text.substring(0, 15).toUpperCase() || "DISPOSITIVO 1";
 
-    Array.from(outputSelect2.options).forEach(opt => {
-        if (opt.value !== "" && opt.value === val1) opt.disabled = true;
-        else opt.disabled = false;
-    });
+    const text2 = outputSelect2.options[outputSelect2.selectedIndex]?.text.toLowerCase() || "";
+    iconOut2.innerHTML = (text2.includes('headphone') || text2.includes('auscultador') || text2.includes('fone') || text2.includes('airpod')) ? svgHeadphone : svgSpeaker;
+    labelOut2.textContent = outputSelect2.options[outputSelect2.selectedIndex]?.text.substring(0, 15).toUpperCase() || "DISPOSITIVO 2";
 }
 
-function sendOutputDevices() {
+function sendRoutingParams() {
     const primary = outputSelect.value;
     const secondary = duplicateSwitch.checked ? outputSelect2.value : null;
-    sendToEngine({ action: 'set_output_device', deviceId: primary, secondaryDeviceId: secondary });
+    
+    sendToEngine({ 
+        action: 'set_routing_params', 
+        deviceId: primary, 
+        secondaryDeviceId: secondary,
+        out1Vol: parseInt(volOut1.value),
+        out2Vol: parseInt(volOut2.value),
+        out1EffectOn: bypassOut1.checked,
+        out2EffectOn: bypassOut2.checked
+    });
 }
 
 duplicateSwitch.addEventListener('change', (e) => {
     if (e.target.checked) {
-        outputSelect2.classList.remove('hidden');
+        cardOutput2.classList.remove('hidden'); controlsOut1.classList.remove('hidden'); controlsOut2.classList.remove('hidden');
     } else {
-        outputSelect2.classList.add('hidden');
+        cardOutput2.classList.add('hidden'); controlsOut1.classList.add('hidden'); controlsOut2.classList.add('hidden');
         outputSelect2.value = ""; 
     }
-    updateOutputExclusion();
-    sendOutputDevices();
+    updateOutputVisuals(); sendRoutingParams();
 });
 
-outputSelect.addEventListener('change', () => { updateOutputExclusion(); sendOutputDevices(); });
-outputSelect2.addEventListener('change', () => { updateOutputExclusion(); sendOutputDevices(); });
+outputSelect.addEventListener('change', () => { updateOutputVisuals(); sendRoutingParams(); });
+outputSelect2.addEventListener('change', () => { updateOutputVisuals(); sendRoutingParams(); });
+
+// Eventos de Deslize Metálico
+[volOut1, volOut2].forEach(slider => {
+    slider.addEventListener('input', (e) => {
+        e.target.style.setProperty('--vol-percent', `${e.target.value}%`);
+        sendRoutingParams();
+    });
+});
+bypassOut1.addEventListener('change', sendRoutingParams);
+bypassOut2.addEventListener('change', sendRoutingParams);
 
 aiInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
 
@@ -513,26 +398,20 @@ function gainToY(g) { const midY = (canvas.height - 20) / 2; return midY - (g * 
 function yToGain(y) { const midY = (canvas.height - 20) / 2; return Math.max(-dbLimit, Math.min(dbLimit, (midY - y) / (midY / dbLimit))); }
 
 function getXY(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
     return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
 }
 
 let lastSendTime = 0;
 function sendPointsToEngine(force = false) {
-    eqPoints.sort((a, b) => a.f - b.f);
-    const now = Date.now();
+    eqPoints.sort((a, b) => a.f - b.f); const now = Date.now();
     if (force || now - lastSendTime > 40) { sendToEngine({ action: 'update_dynamic_eq', points: eqPoints }); lastSendTime = now; }
 }
 
 canvas.addEventListener('dblclick', (e) => {
-    if (eqPoints.length >= MAX_POINTS) return;
-    const pos = getXY(e); if (pos.y > canvas.height - 20) return;
-    eqPoints.push({ f: xToFreq(pos.x), g: yToGain(pos.y), q: 1.2 });
-    selectedPointIndex = eqPoints.length - 1; 
-    sendPointsToEngine(true);
-    saveHistoryState(eqPoints); // Salva histórico
+    if (eqPoints.length >= MAX_POINTS) return; const pos = getXY(e); if (pos.y > canvas.height - 20) return;
+    eqPoints.push({ f: xToFreq(pos.x), g: yToGain(pos.y), q: 1.2 }); selectedPointIndex = eqPoints.length - 1; 
+    sendPointsToEngine(true); saveHistoryState(eqPoints); 
 });
 
 canvas.addEventListener('mousedown', (e) => {
@@ -543,8 +422,7 @@ canvas.addEventListener('mousedown', (e) => {
 canvas.addEventListener('mousemove', (e) => {
     const pos = getXY(e);
     if (isDragging && draggedPointIndex !== -1) {
-        eqPoints[draggedPointIndex].f = Math.max(minFreq, Math.min(maxFreq, xToFreq(pos.x)));
-        eqPoints[draggedPointIndex].g = yToGain(pos.y);
+        eqPoints[draggedPointIndex].f = Math.max(minFreq, Math.min(maxFreq, xToFreq(pos.x))); eqPoints[draggedPointIndex].g = yToGain(pos.y);
         sendPointsToEngine(); 
     } else {
         hoveredPointIndex = -1;
@@ -556,62 +434,38 @@ canvas.addEventListener('mousemove', (e) => {
     }
 });
 
-canvas.addEventListener('mouseup', () => { 
-    if(isDragging) { 
-        isDragging = false; draggedPointIndex = -1; sendPointsToEngine(true); 
-        saveHistoryState(eqPoints); 
-    } 
-});
-canvas.addEventListener('mouseleave', () => { 
-    if(isDragging) { 
-        isDragging = false; draggedPointIndex = -1; hoveredPointIndex = -1; sendPointsToEngine(true); 
-        saveHistoryState(eqPoints); 
-    } 
-});
+canvas.addEventListener('mouseup', () => { if(isDragging) { isDragging = false; draggedPointIndex = -1; sendPointsToEngine(true); saveHistoryState(eqPoints); } });
+canvas.addEventListener('mouseleave', () => { if(isDragging) { isDragging = false; draggedPointIndex = -1; hoveredPointIndex = -1; sendPointsToEngine(true); saveHistoryState(eqPoints); } });
 
 let wheelTimeout;
 canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     if (hoveredPointIndex !== -1) { 
-        eqPoints[hoveredPointIndex].q = Math.max(0.1, Math.min(10, eqPoints[hoveredPointIndex].q + (e.deltaY > 0 ? -0.2 : 0.2))); 
-        sendPointsToEngine(true); 
-        
-        clearTimeout(wheelTimeout);
-        wheelTimeout = setTimeout(() => saveHistoryState(eqPoints), 500); // Salva ao parar de rodar a roda
+        eqPoints[hoveredPointIndex].q = Math.max(0.1, Math.min(10, eqPoints[hoveredPointIndex].q + (e.deltaY > 0 ? -0.2 : 0.2))); sendPointsToEngine(true); 
+        clearTimeout(wheelTimeout); wheelTimeout = setTimeout(() => saveHistoryState(eqPoints), 500);
     }
 }, { passive: false });
 
-// Controlos de Teclado Universais (Ctrl+Z, Ctrl+Y, Delete)
 document.addEventListener('keydown', (e) => {
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-
     if (e.ctrlKey && e.key.toLowerCase() === 'z') { e.preventDefault(); doUndo(); return; }
     if (e.ctrlKey && e.key.toLowerCase() === 'y') { e.preventDefault(); doRedo(); return; }
-
     if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedPointIndex !== -1 && selectedPointIndex < eqPoints.length) {
-            eqPoints.splice(selectedPointIndex, 1); 
-            selectedPointIndex = -1; hoveredPointIndex = -1; 
-            sendPointsToEngine(true);
-            saveHistoryState(eqPoints); // Salva histórico
+            eqPoints.splice(selectedPointIndex, 1); selectedPointIndex = -1; hoveredPointIndex = -1; 
+            sendPointsToEngine(true); saveHistoryState(eqPoints); 
         }
     }
 });
 
 canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    if (hoveredPointIndex !== -1) { 
-        eqPoints.splice(hoveredPointIndex, 1); 
-        hoveredPointIndex = -1; selectedPointIndex = -1; 
-        sendPointsToEngine(true); 
-        saveHistoryState(eqPoints); // Salva histórico
-    }
+    if (hoveredPointIndex !== -1) { eqPoints.splice(hoveredPointIndex, 1); hoveredPointIndex = -1; selectedPointIndex = -1; sendPointsToEngine(true); saveHistoryState(eqPoints); }
 });
 
-// --- Desenho do Gráfico e NOVO Espectro de Áudio ---
+// --- Desenho do Gráfico ---
 let currentDBResponse = [], currentBoosterDB = 0;
-let currentSpectrum = [];
-let currentSampleRate = 48000;
+let currentSpectrum = []; let currentSampleRate = 48000;
 
 function drawGraph() {
     if (!canvas || !ctx) return;
@@ -636,46 +490,26 @@ function drawGraph() {
         ctx.fillText(freq >= 1000 ? (freq/1000) + 'k' : freq, textX, height - 5);
     });
 
-    // 1. DESENHA O ESPECTRO DE ÁUDIO DANÇANTE (Fundo)
     if (currentSpectrum && currentSpectrum.length > 0) {
-        // Criar um gradiente estiloso para as barras
         const gradient = ctx.createLinearGradient(0, graphHeight, 0, 0);
-        gradient.addColorStop(0, 'rgba(29, 185, 84, 0.05)'); // Base quase transparente
-        gradient.addColorStop(0.6, 'rgba(29, 185, 84, 0.25)'); // Meio visível
-        gradient.addColorStop(1, 'rgba(29, 185, 84, 0.5)'); // Topo mais forte
-        
-        ctx.fillStyle = gradient;
-        const nyquist = currentSampleRate / 2;
-        const binCount = currentSpectrum.length;
+        gradient.addColorStop(0, 'rgba(156, 163, 175, 0.05)'); 
+        gradient.addColorStop(0.6, 'rgba(107, 114, 128, 0.25)'); 
+        gradient.addColorStop(1, 'rgba(75, 85, 99, 0.5)'); 
+        ctx.fillStyle = gradient; const nyquist = currentSampleRate / 2; const binCount = currentSpectrum.length;
 
         for (let i = 1; i < binCount; i++) {
-            const val = currentSpectrum[i];
-            if (val === 0) continue;
-            
-            const freq = i * (nyquist / binCount);
-            if (freq > 20000) continue; 
-
+            const val = currentSpectrum[i]; if (val === 0) continue;
+            const freq = i * (nyquist / binCount); if (freq > 20000) continue; 
             const nextFreq = (i + 1) * (nyquist / binCount);
             
-            let x = freqToX(freq);
-            if (x < 0) x = 0;
-            
-            let nextX = freqToX(nextFreq);
-            if (nextX > width) nextX = width;
-            
-            let barWidth = Math.max(1.5, nextX - x - 0.5); // 0.5 de espaçamento
-            
-            const percent = val / 255;
-            // Exagera levemente o topo para ficar mais dinâmico visualmente
-            const smoothPercent = Math.pow(percent, 1.2); 
-            const barHeight = smoothPercent * graphHeight;
-            const y = height - paddingBottom - barHeight;
-            
+            let x = freqToX(freq); if (x < 0) x = 0; let nextX = freqToX(nextFreq); if (nextX > width) nextX = width;
+            let barWidth = Math.max(1.5, nextX - x - 0.5); 
+            const percent = val / 255; const smoothPercent = Math.pow(percent, 1.2); 
+            const barHeight = smoothPercent * graphHeight; const y = height - paddingBottom - barHeight;
             ctx.fillRect(x, y, barWidth, barHeight);
         }
     }
 
-    // 2. DESENHA A LINHA DO EQ
     if (currentDBResponse && currentDBResponse.length > 0) {
         ctx.strokeStyle = '#4b5563'; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.beginPath();
         for (let i = 0; i < currentDBResponse.length; i++) {
@@ -686,7 +520,6 @@ function drawGraph() {
         ctx.stroke();
     }
 
-    // 3. DESENHA OS PONTOS DO EQ
     for (let i = 0; i < eqPoints.length; i++) {
         const px = freqToX(eqPoints[i].f), py = gainToY(eqPoints[i].g);
         ctx.beginPath(); ctx.arc(px, py, (i === hoveredPointIndex || i === draggedPointIndex || i === selectedPointIndex) ? 6 : 4, 0, 2 * Math.PI);
@@ -696,24 +529,15 @@ function drawGraph() {
     }
 }
 
-// NOVO LOOP DE ANIMAÇÃO: Pede o espectro e desenha a 60fps
 function animationLoop() {
     if (currentTabId !== null && isAppOn) {
         chrome.runtime.sendMessage({ action: 'get_spectrum', tabId: currentTabId }, (res) => {
             if (!chrome.runtime.lastError && res && res.data) {
-                currentSpectrum = res.data;
-                if (res.sampleRate) currentSampleRate = res.sampleRate;
-            } else {
-                currentSpectrum = [];
-            }
-            drawGraph();
-            requestAnimationFrame(animationLoop);
+                currentSpectrum = res.data; if (res.sampleRate) currentSampleRate = res.sampleRate;
+            } else { currentSpectrum = []; }
+            drawGraph(); requestAnimationFrame(animationLoop);
         });
-    } else {
-        currentSpectrum = [];
-        drawGraph();
-        requestAnimationFrame(animationLoop);
-    }
+    } else { currentSpectrum = []; drawGraph(); requestAnimationFrame(animationLoop); }
 }
 
 let isInitialLoad = true;
@@ -723,52 +547,81 @@ chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'sync_popup_state') {
         eqPoints = message.points || [];
         const vol = message.boosterVolume || 100;
-        boosterSlider.value = vol; boosterValueDisplay.textContent = `${vol}%`;
+        setKnobValue(vol);
         
-        if (message.outputDeviceId !== undefined) outputSelect.value = message.outputDeviceId;
-        if (message.secondaryDeviceId) {
-            duplicateSwitch.checked = true;
-            outputSelect2.classList.remove('hidden');
-            outputSelect2.value = message.secondaryDeviceId;
-        } else {
-            duplicateSwitch.checked = false;
-            outputSelect2.classList.add('hidden');
-            outputSelect2.value = "";
+        if (message.routing) {
+            if (message.routing.deviceId !== undefined) outputSelect.value = message.routing.deviceId;
+            if (message.routing.secondaryDeviceId) {
+                duplicateSwitch.checked = true;
+                cardOutput2.classList.remove('hidden'); controlsOut1.classList.remove('hidden'); controlsOut2.classList.remove('hidden');
+                outputSelect2.value = message.routing.secondaryDeviceId;
+            } else {
+                duplicateSwitch.checked = false;
+                cardOutput2.classList.add('hidden'); controlsOut1.classList.add('hidden'); controlsOut2.classList.add('hidden');
+                outputSelect2.value = "";
+            }
+            
+            // Sync Controlos Individuais
+            volOut1.value = message.routing.out1Vol; volOut1.style.setProperty('--vol-percent', `${message.routing.out1Vol}%`);
+            bypassOut1.checked = message.routing.out1EffectOn;
+            
+            volOut2.value = message.routing.out2Vol; volOut2.style.setProperty('--vol-percent', `${message.routing.out2Vol}%`);
+            bypassOut2.checked = message.routing.out2EffectOn;
+            
+            updateOutputVisuals();
         }
-        updateOutputExclusion();
 
-        if (isInitialLoad) {
-            saveHistoryState(eqPoints);
-            isInitialLoad = false;
-        }
-        
-        if (window.justGotAIPoints) {
-            saveHistoryState(eqPoints);
-            window.justGotAIPoints = false;
-        }
-
+        if (isInitialLoad) { saveHistoryState(eqPoints); isInitialLoad = false; }
+        if (window.justGotAIPoints) { saveHistoryState(eqPoints); window.justGotAIPoints = false; }
     } 
-    else if (message.action === 'update_graph_data') {
-        currentDBResponse = message.dbValues; currentBoosterDB = message.boosterDB;
-    }
+    else if (message.action === 'update_graph_data') { currentDBResponse = message.dbValues; currentBoosterDB = message.boosterDB; }
     return true;
 });
 
-// Inicia o Loop de Desenho e Busca de Espectro
 animationLoop();
+
+// --- NOVA VÁLVULA DE AÇO (Visual Fotorealista) ---
+let isKnobDragging = false;
+let currentBoosterVal = 100;
+
+function setKnobValue(vol) {
+    currentBoosterVal = Math.max(100, Math.min(300, vol));
+    boosterValueDisplay.textContent = `${currentBoosterVal}%`;
+    const percent = (currentBoosterVal - 100) / 200;
+    const angle = percent * 270; // Preenche de 0 a 270 graus
+    
+    boosterKnobWrapper.style.setProperty('--fill-angle', `${angle}deg`);
+    boosterKnob.style.transform = `rotate(calc(-135deg + ${angle}deg))`;
+}
+
+function handleKnobDrag(e) {
+    if (!isKnobDragging) return;
+    const rect = boosterKnobWrapper.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2; const centerY = rect.top + rect.height / 2;
+    
+    let angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+    angle += 90; if (angle < -180) angle += 360; if (angle > 180) angle -= 360;
+
+    if (angle < -135) angle = -135; if (angle > 135) angle = 135;
+    const percent = (angle + 135) / 270;
+    const newVol = Math.round(100 + (percent * 200));
+    
+    setKnobValue(newVol);
+    sendToEngine({ action: 'set_booster', volume: currentBoosterVal });
+}
+
+boosterKnob.addEventListener('mousedown', (e) => { isKnobDragging = true; handleKnobDrag(e); });
+document.addEventListener('mousemove', handleKnobDrag); document.addEventListener('mouseup', () => { isKnobDragging = false; });
+
 
 // --- Salvar, Importar e Exportar ---
 btnShowSave.addEventListener('click', () => { saveContainer.classList.toggle('hidden'); newPresetName.focus(); });
 btnSavePreset.addEventListener('click', () => {
-    const name = newPresetName.value.trim();
-    if (!name) return;
+    const name = newPresetName.value.trim(); if (!name) return;
     getStorageData((custom, order, favs) => {
         custom[name] = { points: eqPoints, type: 'created' };
         if(!order.includes(name)) order.push(name);
-        saveStorageData(custom, order, favs, () => {
-            newPresetName.value = ''; saveContainer.classList.add('hidden');
-            currentSelectedPresetKey = `custom_${name}`; renderUI();
-        });
+        saveStorageData(custom, order, favs, () => { newPresetName.value = ''; saveContainer.classList.add('hidden'); currentSelectedPresetKey = `custom_${name}`; renderUI(); });
     });
 });
 
@@ -781,132 +634,60 @@ fileInput.addEventListener('change', (e) => {
             try {
                 const data = JSON.parse(evt.target.result);
                 if (data && data.points && Array.isArray(data.points)) {
-                    eqPoints = data.points; sendPointsToEngine(true); 
-                    saveHistoryState(eqPoints); // Salva histórico
-                    
+                    eqPoints = data.points; sendPointsToEngine(true); saveHistoryState(eqPoints); 
                     const rawName = data.presetName ? data.presetName.replace('Preset - ', '') : "Importado";
                     const importName = `Preset - ${rawName}`;
                     getStorageData((custom, order, favs) => {
                         custom[importName] = { points: eqPoints, type: 'imported' };
                         if(!order.includes(importName)) order.push(importName);
-                        saveStorageData(custom, order, favs, () => {
-                            currentSelectedPresetKey = `custom_${importName}`; renderUI();
-                        });
+                        saveStorageData(custom, order, favs, () => { currentSelectedPresetKey = `custom_${importName}`; renderUI(); });
                     });
                 } else { alert("Arquivo JSON inválido."); }
             } catch (err) { alert("Erro ao ler o arquivo."); }
         };
         reader.readAsText(file); 
-    }
-    e.target.value = ''; 
+    } e.target.value = ''; 
 });
 
 btnDownload.addEventListener('click', () => {
-    let currentName = currentSelectedPresetKey;
-    if (currentName.startsWith('custom_')) currentName = currentName.replace('custom_', '');
-    else if (currentName === 'Padrao') currentName = "Meu_EQ";
-    const cleanName = currentName.replace('Preset - ', '');
-    const dataObj = { presetName: `Preset - ${cleanName}`, points: eqPoints };
+    let currentName = currentSelectedPresetKey; if (currentName.startsWith('custom_')) currentName = currentName.replace('custom_', ''); else if (currentName === 'Padrao') currentName = "Meu_EQ";
+    const cleanName = currentName.replace('Preset - ', ''); const dataObj = { presetName: `Preset - ${cleanName}`, points: eqPoints };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj, null, 2));
-    const a = document.createElement('a');
-    a.href = dataStr; a.download = `Preset_${cleanName.replace(/\s+/g, '_')}.json`;
+    const a = document.createElement('a'); a.href = dataStr; a.download = `Preset_${cleanName.replace(/\s+/g, '_')}.json`;
     document.body.appendChild(a); a.click(); a.remove();
 });
 
-// --- Áudio Booster e LÓGICA DA IA ---
-boosterSlider.addEventListener('input', (event) => {
-    boosterValueDisplay.textContent = `${event.target.value}%`;
-    sendToEngine({ action: 'set_booster', volume: parseInt(event.target.value) });
-});
-
+// --- LÓGICA DA IA ---
 function sendAiCommand(promptText) {
     if (promptText === "") return;
     aiStatus.textContent = "A IA está pensando... 🤔"; aiStatus.classList.remove('hidden'); aiInput.style.height = 'auto';
-    
-    const isNewCurve = aiNewCurveSwitch.checked;
-    const pointsToSend = isNewCurve ? [] : eqPoints; 
+    const isNewCurve = aiNewCurveSwitch.checked; const pointsToSend = isNewCurve ? [] : eqPoints; 
 
-    sendToEngine({ 
-        action: 'process_ai_command', 
-        prompt: promptText,
-        currentPoints: pointsToSend,
-        isNewCurve: isNewCurve
-    }, () => {
-        setTimeout(() => {
-            sendToEngine({ action: 'request_graph_update' });
-            window.justGotAIPoints = true; // Avisa o sistema para salvar o novo estado da IA no histórico
-        }, 1000);
+    sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => {
+        setTimeout(() => { sendToEngine({ action: 'request_graph_update' }); window.justGotAIPoints = true; }, 1000);
     });
-    
-    aiInput.value = ""; 
-    setTimeout(() => { aiStatus.textContent = "Curva ajustada! 🚀"; setTimeout(() => aiStatus.classList.add('hidden'), 3000); }, 1500);
+    aiInput.value = ""; setTimeout(() => { aiStatus.textContent = "Curva ajustada! 🚀"; setTimeout(() => aiStatus.classList.add('hidden'), 3000); }, 1500);
 }
 
 btnSendAi.addEventListener('click', () => sendAiCommand(aiInput.value.trim()));
 aiInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiCommand(aiInput.value.trim()); } });
 
-// --- CORREÇÃO DO MICROFONE ---
+// --- MICROFONE ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
-let recognition = null;
-let isRecording = false;
+let recognition = null; let isRecording = false;
 
 if (SpeechRecognition) {
-    recognition = new SpeechRecognition(); 
-    recognition.continuous = false; 
-    recognition.interimResults = true; 
-    recognition.lang = 'pt-BR'; 
-    
-    recognition.onstart = () => { 
-        isRecording = true;
-        micStatus.classList.remove('hidden'); 
-        btnMic.classList.add('recording'); 
-    };
-    
-    recognition.onresult = (e) => {
-        let t = ''; 
-        for (let i = e.resultIndex; i < e.results.length; ++i) {
-            t += e.results[i][0].transcript;
-        }
-        aiInput.value = t; 
-        aiInput.dispatchEvent(new Event('input')); 
-    };
-    
-    recognition.onend = () => {
-        isRecording = false;
-        micStatus.classList.add('hidden'); 
-        btnMic.classList.remove('recording');
-        
-        const f = aiInput.value.trim(); 
-        if (f !== "") sendAiCommand(f);
-    };
-    
+    recognition = new SpeechRecognition(); recognition.continuous = false; recognition.interimResults = true; recognition.lang = 'pt-BR'; 
+    recognition.onstart = () => { isRecording = true; micStatus.classList.remove('hidden'); btnMic.classList.add('recording'); };
+    recognition.onresult = (e) => { let t = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { t += e.results[i][0].transcript; } aiInput.value = t; aiInput.dispatchEvent(new Event('input')); };
+    recognition.onend = () => { isRecording = false; micStatus.classList.add('hidden'); btnMic.classList.remove('recording'); const f = aiInput.value.trim(); if (f !== "") sendAiCommand(f); };
     recognition.onerror = (e) => { 
-        isRecording = false;
-        micStatus.classList.add('hidden'); 
-        btnMic.classList.remove('recording');
-        
-        if (e.error === 'not-allowed') {
-            chrome.runtime.openOptionsPage(); 
-        } else { 
-            micStatus.textContent = "Erro: " + e.error; 
-            micStatus.classList.remove('hidden');
-            setTimeout(() => micStatus.classList.add('hidden'), 3000); 
-        } 
+        isRecording = false; micStatus.classList.add('hidden'); btnMic.classList.remove('recording');
+        if (e.error === 'not-allowed') { chrome.runtime.openOptionsPage(); } else { micStatus.textContent = "Erro: " + e.error; micStatus.classList.remove('hidden'); setTimeout(() => micStatus.classList.add('hidden'), 3000); } 
     };
-} else { 
-    btnMic.style.display = 'none'; 
-}
+} else { btnMic.style.display = 'none'; }
 
 btnMic.addEventListener('click', async () => {
-    if (!recognition || isRecording) return;
-    isRecording = true; 
-    
-    try { 
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(track => track.stop());
-        recognition.start(); 
-    } catch (err) {
-        isRecording = false;
-        console.warn("Erro ao acordar o microfone.", err);
-    }
+    if (!recognition || isRecording) return; isRecording = true; 
+    try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); stream.getTracks().forEach(track => track.stop()); recognition.start(); } catch (err) {}
 });
