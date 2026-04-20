@@ -1,90 +1,85 @@
-/* --- Reset e Variáveis de Cor --- */
+/* --- Reset e Paleta NEUMORFISMO (Cinza/Branco Metálico) --- */
 :root {
-    --bg-main: #ffffff;
-    --bg-surface: #f3f4f6;
-    --bg-hover: #e5e7eb;
-    --text-main: #1f2937;
+    --bg-main: #f0f0f3; /* Cinza metálico suave para Neumorfismo */
+    --neu-bg: #f0f0f3;
+    --neu-light: #ffffff;
+    --neu-dark: #c8c8d0;
+    --text-main: #374151;
     --text-muted: #6b7280;
     --icon-dark: #4b5563;
-    --border-color: #d1d5db;
     --accent-dark: #374151;
-    --accent-hover: #1f2937;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
 
 body {
     width: 380px; padding: 15px;
-    background-color: var(--bg-main); color: var(--text-main);
+    background-color: var(--neu-bg); color: var(--text-main);
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
 }
 body.expanded { width: 760px; }
 
-.logo-container { display: flex; justify-content: center; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+.logo-container { display: flex; justify-content: center; align-items: center; margin-bottom: 15px; padding-bottom: 10px; }
 .app-logo { max-height: 40px; width: auto; }
 
 label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; }
 
-.graph-container { background-color: var(--bg-surface); border-radius: 8px; border: 1px solid var(--border-color); padding: 10px; margin-bottom: 15px; }
+/* Gráfico em Baixo-Relevo (Inset Neumorphism) */
+.graph-container { 
+    background-color: var(--neu-bg); border-radius: 12px; border: none; padding: 10px; margin-bottom: 15px; 
+    box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);
+}
 .graph-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; color: var(--text-muted); font-size: 0.7rem; }
 
+/* Botões Pequenos (Ícones) */
 .btn-icon {
-    background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px 4px;
-    display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: background 0.2s, color 0.2s;
+    background: var(--neu-bg); border: none; cursor: pointer; color: var(--text-muted); padding: 4px;
+    display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s ease;
+    box-shadow: 3px 3px 6px var(--neu-dark), -3px -3px 6px var(--neu-light);
 }
-.btn-icon:hover { color: var(--text-main); background: var(--border-color); }
+.btn-icon:hover:not(:disabled) { color: var(--text-main); transform: scale(1.05); }
+.btn-icon:active:not(:disabled) { box-shadow: inset 2px 2px 5px var(--neu-dark), inset -2px -2px 5px var(--neu-light); }
+.btn-icon:disabled { box-shadow: 1px 1px 2px var(--neu-dark), -1px -1px 2px var(--neu-light); opacity: 0.5; cursor: not-allowed; }
 
-canvas#eqGraph { background: #fff; border: 1px solid var(--border-color); border-radius: 4px; display: block; width: 100%; }
+canvas#eqGraph { background: transparent; border: none; display: block; width: 100%; }
 
 .flex-row { display: flex; gap: 8px; margin-bottom: 15px; }
 
-/* Botões Genéricos */
-button { flex: 1; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent; }
-.btn-white { background-color: #fff; color: var(--text-main); border: 1px solid var(--border-color); }
-.btn-white:hover { background-color: var(--bg-surface); }
-.btn-primary { background-color: var(--accent-dark); color: #fff; }
-.btn-primary:hover { background-color: var(--accent-hover); }
-
-/* --- AÇO ESCOVADO (Classe para Botões e Favoritos) --- */
-.metal-button {
+/* --- BOTÕES NEUMÓRFICOS PRINCIPAIS --- */
+button { flex: 1; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; }
+.btn-white, .btn-primary, .metal-button {
     appearance: none;
-    background: linear-gradient(180deg, #ffffff 0%, #e5e5e5 45%, #cccccc 55%, #f2f2f2 100%);
-    border: 1px solid #999;
-    border-radius: 6px;
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.15);
-    color: #333;
-    font-weight: 700;
+    background: var(--neu-bg);
+    border: none;
+    color: var(--icon-dark);
     padding: 8px 12px;
-    text-shadow: 0 1px 0 rgba(255,255,255,0.8);
-    cursor: pointer;
-    transition: all 0.2s ease;
+    box-shadow: 5px 5px 10px var(--neu-dark), -5px -5px 10px var(--neu-light);
 }
-.metal-button:hover { background: linear-gradient(180deg, #ffffff 0%, #eeeeee 45%, #d4d4d4 55%, #f9f9f9 100%); }
-.metal-button:active {
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
-    background: linear-gradient(180deg, #cccccc 0%, #b3b3b3 45%, #999999 55%, #cccccc 100%);
+.btn-white:hover, .btn-primary:hover, .metal-button:hover {
+    box-shadow: 3px 3px 6px var(--neu-dark), -3px -3px 6px var(--neu-light);
+}
+.btn-white:active, .btn-primary:active, .metal-button:active {
+    box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);
 }
 
-/* Selects Metálicos */
-.metal-select {
+/* Áreas de Seleção e Inputs (Baixo-Relevo / Inset Neumorphism) */
+.metal-select, input[type="text"], textarea {
     appearance: none;
-    background: linear-gradient(180deg, #ffffff 0%, #e5e5e5 45%, #cccccc 55%, #f2f2f2 100%);
-    border: 1px solid #999; border-radius: 20px;
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.15);
-    color: #333; font-weight: 600; padding: 6px 15px; text-shadow: 0 1px 0 rgba(255,255,255,0.8); cursor: pointer;
+    background: var(--neu-bg);
+    border: none;
+    border-radius: 12px;
+    box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);
+    color: var(--text-main);
+    font-weight: 600; padding: 8px 15px; width: 100%; transition: all 0.2s ease;
 }
-.metal-select:focus { outline: none; border-color: #666; }
-.custom-select-trigger.metal-select { padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; }
+.metal-select:focus, input[type="text"]:focus, textarea:focus { outline: none; box-shadow: inset 6px 6px 10px var(--neu-dark), inset -6px -6px 10px var(--neu-light); }
+.custom-select-trigger.metal-select { padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; border-radius: 20px; cursor: pointer; }
+textarea#ai-input { resize: none; overflow-y: hidden; min-height: 40px; line-height: 1.4; padding-right: 40px; border-radius: 15px; }
 
-/* Inputs Textuais */
-input[type="text"], textarea { width: 100%; padding: 8px 12px; border-radius: 6px; background-color: #fff; border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.875rem; transition: border-color 0.15s ease; }
-input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--accent-dark); }
-textarea#ai-input { resize: none; overflow-y: hidden; min-height: 40px; line-height: 1.4; padding-right: 40px; }
-
-/* --- Knob Circular Avançado --- */
+/* --- VÁLVULA BOOSTER (MANTIDA EXATAMENTE IGUAL) --- */
 .knob-wrapper { position: relative; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; }
 .knob-track { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(from -135deg, var(--accent-dark) var(--fill-angle, 0deg), #e5e7eb var(--fill-angle, 0deg), #e5e7eb 270deg, transparent 270deg); }
-.knob-inner-bg { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border-radius: 50%; background: var(--bg-main); }
+.knob-inner-bg { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border-radius: 50%; background: var(--neu-bg); }
 .knob-metal {
     position: relative; width: 54px; height: 54px; border-radius: 50%; z-index: 2;
     background: conic-gradient(from 0deg, #d1d5db, #f3f4f6, #9ca3af, #f3f4f6, #d1d5db, #f3f4f6, #9ca3af, #f3f4f6, #d1d5db);
@@ -93,82 +88,108 @@ textarea#ai-input { resize: none; overflow-y: hidden; min-height: 40px; line-hei
 }
 .knob-metal::after { content: ''; position: absolute; top: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 10px; background: #4b5563; border-radius: 2px; box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
 
-/* Switches (Totalmente em Tons Metálicos/Cinza) */
-.switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+/* --- SWITCHES (Canais em Neumorfismo, Thumbs em Aço Escovado) --- */
+.switch { position: relative; display: inline-block; width: 38px; height: 20px; }
 .switch input { opacity: 0; width: 0; height: 0; }
-.switch .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .3s; border-radius: 34px; border: 1px solid #777; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);}
-.switch .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 1px; background: linear-gradient(135deg, #e6e6e6 0%, #cccccc 40%, #999999 50%, #b3b3b3 60%, #f2f2f2 100%); border: 1px solid #777; box-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: .3s; border-radius: 50%; }
-.switch input:checked + .slider { background-color: #6b7280; border-color: #4b5563; }
-.switch input:checked + .slider:before { transform: translateX(16px); }
+.switch .slider { 
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
+    background-color: var(--neu-bg) !important; border: none !important; transition: .3s; border-radius: 34px; 
+    box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light) !important;
+}
+/* O Botão Deslizante mantendo a essência de aço original */
+.switch .slider:before { 
+    position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; 
+    background: linear-gradient(135deg, #e6e6e6 0%, #cccccc 40%, #999999 50%, #b3b3b3 60%, #f2f2f2 100%); 
+    border: 1px solid #999; box-shadow: 0 1px 3px rgba(0,0,0,0.4); transition: .3s; border-radius: 50%; 
+}
+.switch input:checked + .slider { box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light) !important; }
+.switch input:checked + .slider:before { transform: translateX(18px); background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 40%, #aaaaaa 50%, #c5c5c5 60%, #ffffff 100%); }
 
-/* Sliders Metálicos (Preenchimento Prateado em vez de Verde) */
+/* Sliders de Volume nos Cards (Trilho Inset) */
 .metal-slider { 
-    -webkit-appearance: none; width: 100%; height: 6px; background: #e5e7eb; border-radius: 3px; border: 1px solid #ccc; 
-    background: linear-gradient(to right, #6b7280 var(--vol-percent, 100%), #e5e7eb var(--vol-percent, 100%)); 
+    -webkit-appearance: none; width: 100%; height: 8px; background: var(--neu-bg); border-radius: 4px; border: none;
+    box-shadow: inset 2px 2px 5px var(--neu-dark), inset -2px -2px 5px var(--neu-light);
 }
 .metal-slider:focus { outline: none; }
-.metal-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, #ffffff 0%, #e5e5e5 40%, #cccccc 100%); border: 1px solid #999; box-shadow: 0 1px 3px rgba(0,0,0,0.4); cursor: pointer; margin-top: -1px; }
-
-/* Favoritos (Herdam o Aço Escovado) */
-.favorites-bar { display: flex; gap: 8px; margin-bottom: 8px; }
-.btn-fav { 
-    flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #999; 
-    background: linear-gradient(180deg, #ffffff 0%, #e5e5e5 45%, #cccccc 55%, #f2f2f2 100%);
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.9), 0 1px 2px rgba(0,0,0,0.2); text-shadow: 0 1px 0 rgba(255,255,255,0.8);
-    font-size: 0.75rem; text-align: center; cursor: pointer; font-weight: 700; color: #333; transition: all 0.2s ease;
+.metal-slider::-webkit-slider-thumb { 
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; 
+    background: radial-gradient(circle at 50% 50%, #ffffff 0%, #e5e5e5 40%, #cccccc 100%); 
+    border: 1px solid #999; box-shadow: 0 2px 4px rgba(0,0,0,0.4); cursor: pointer; margin-top: 0px; 
 }
-.btn-fav:hover { background: linear-gradient(180deg, #ffffff 0%, #eeeeee 45%, #d4d4d4 55%, #f9f9f9 100%); }
+
+/* Favoritos (Neumorfismo) */
+.favorites-bar { display: flex; gap: 10px; margin-bottom: 8px; }
+.btn-fav { 
+    flex: 1; padding: 8px; border-radius: 8px; border: none; 
+    background: var(--neu-bg);
+    box-shadow: 4px 4px 8px var(--neu-dark), -4px -4px 8px var(--neu-light);
+    font-size: 0.75rem; text-align: center; cursor: pointer; font-weight: 700; color: var(--icon-dark); transition: all 0.2s ease;
+}
+.btn-fav:hover { box-shadow: 2px 2px 4px var(--neu-dark), -2px -2px 4px var(--neu-light); }
 .btn-fav.active { 
-    background: linear-gradient(180deg, #9ca3af 0%, #6b7280 45%, #4b5563 55%, #6b7280 100%); 
-    color: #fff; border-color: #374151; text-shadow: 0 -1px 0 rgba(0,0,0,0.5); box-shadow: inset 0 2px 5px rgba(0,0,0,0.6); 
+    color: var(--text-main); text-shadow: none;
+    box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light); 
 }
 
 /* Dropdown e Pontinhos */
 .custom-select-container { position: relative; width: 100%; user-select: none; }
-.custom-options { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 4px; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; }
+.custom-options { 
+    position: absolute; top: 100%; left: 0; right: 0; background: var(--neu-bg); border: none; border-radius: 12px; margin-top: 8px; 
+    max-height: 250px; overflow-y: auto; z-index: 100; 
+    box-shadow: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light); display: none; 
+}
 .custom-options.open { display: block; }
-.custom-option { display: flex; justify-content: space-between; align-items: stretch; font-size: 0.85rem; border-bottom: 1px solid #f3f4f6; padding: 0; }
-.preset-info { flex: 1; display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; }
-.preset-info:hover { background: var(--bg-surface); }
+.custom-option { display: flex; justify-content: space-between; align-items: stretch; font-size: 0.85rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 0; }
+.preset-info { flex: 1; display: flex; align-items: center; gap: 8px; padding: 10px 15px; cursor: pointer; }
+.preset-info:hover { background: rgba(0,0,0,0.03); }
 .monochrome-icon { filter: grayscale(100%) contrast(120%); opacity: 0.85; font-size: 0.95rem; }
 .star-btn-container { display: flex; align-items: center; justify-content: center; padding: 0 12px; cursor: pointer; }
-.star-btn-container:hover { background: var(--bg-surface); }
-.star-btn { background: none; border: none; font-size: 1.2rem; color: #d1d5db; cursor: pointer; transition: color 0.2s; padding: 2px; }
-.star-btn-container:hover .star-btn { color: #9ca3af; }
-.star-btn.active { color: #fbbf24; text-shadow: 0 0 2px rgba(251, 191, 36, 0.4); }
+.star-btn-container:hover { background: rgba(0,0,0,0.03); }
+.star-btn { background: none; border: none; font-size: 1.2rem; color: #a3b1c6; cursor: pointer; transition: color 0.2s; padding: 2px; }
+.star-btn-container:hover .star-btn { color: #8895a9; }
+.star-btn.active { color: #555; text-shadow: none; }
 
 .dots-container { position: relative; display: flex; align-items: center; }
-.dots-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted); padding: 0 5px; font-weight: bold; }
-.dots-btn:hover { color: var(--text-main); }
-.dots-menu { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 101; width: 130px; margin-top: 5px; }
-.dots-menu button { width: 100%; text-align: left; padding: 8px 12px; background: none; border: none; border-radius: 0; font-size: 0.8rem; color: var(--text-main); font-weight: normal; }
-.dots-menu button:hover { background: var(--bg-surface); }
+.dots-btn { 
+    background: var(--neu-bg); border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted); padding: 2px 8px; font-weight: bold; border-radius: 6px;
+    box-shadow: 2px 2px 5px var(--neu-dark), -2px -2px 5px var(--neu-light); transition: all 0.2s;
+}
+.dots-btn:active { box-shadow: inset 2px 2px 5px var(--neu-dark), inset -2px -2px 5px var(--neu-light); }
+.dots-menu { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: var(--neu-bg); border: none; border-radius: 12px; box-shadow: 6px 6px 12px var(--neu-dark), -6px -6px 12px var(--neu-light); z-index: 101; width: 130px; margin-top: 10px; padding: 5px; }
+.dots-menu button { width: 100%; text-align: left; padding: 8px 12px; background: none; border: none; border-radius: 6px; font-size: 0.8rem; color: var(--text-main); font-weight: normal; }
+.dots-menu button:hover { background: rgba(0,0,0,0.03); box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--neu-light); }
 
-/* Routing Cards */
-.routing-card { flex: 1; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.routing-card-header { padding: 8px; border-bottom: 1px solid var(--border-color); text-align: center; }
+/* Routing Cards Neumórficos */
+.routing-card { 
+    flex: 1; background: var(--neu-bg); border: none; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; 
+    box-shadow: 6px 6px 12px var(--neu-dark), -6px -6px 12px var(--neu-light); padding: 5px;
+}
+.routing-card-header { padding: 8px; text-align: center; }
 .routing-card-title { font-size: 0.7rem; font-weight: 800; color: var(--text-main); letter-spacing: 0.5px; }
 .routing-select { width: 100%; padding: 4px 10px; font-size: 0.7rem; text-align: center; text-align-last: center; }
-.routing-card-body { padding: 20px 0; display: flex; justify-content: center; align-items: center; background: #f9fafb; min-height: 90px; }
-.dynamic-icon svg { width: 50px; height: 50px; color: #374151; }
-.routing-card-controls { background: #fff; padding: 10px 12px; border-top: 1px solid var(--border-color); }
+.routing-card-body { padding: 15px 0; display: flex; justify-content: center; align-items: center; background: transparent; min-height: 80px; }
+.dynamic-icon svg { width: 50px; height: 50px; color: var(--icon-dark); filter: drop-shadow(2px 2px 3px var(--neu-dark)); }
+.routing-card-controls { padding: 10px; }
 .routing-label { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
 
-hr { border: 0; border-top: 1px solid var(--border-color); margin: 15px 0; }
+/* Neumorphic Separators */
+hr { border: none; height: 2px; background: transparent; margin: 20px 0; box-shadow: inset 1px 1px 2px var(--neu-dark), inset -1px -1px 2px var(--neu-light); }
 .hidden { display: none !important; }
 
-/* Microfone e Outros */
+/* Microfone e Modais */
 .input-mic-container { position: relative; width: 100%; }
-.btn-mic { position: absolute; right: 8px; top: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 5px; display: flex; }
-.btn-mic:hover { color: var(--accent-dark); }
-.btn-mic.recording { color: var(--accent-dark); animation: pulse 1.5s infinite; }
+.btn-mic { position: absolute; right: 12px; top: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 5px; display: flex; filter: drop-shadow(1px 1px 1px var(--neu-light)); }
+.btn-mic:hover { color: var(--text-main); transform: scale(1.1); }
+.btn-mic.recording { color: var(--text-main); animation: pulse 1.5s infinite; }
 .status-text { font-size: 0.75rem; margin-top: 5px; }
-#modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 200; display: flex; justify-content: center; align-items: center; }
-.modal-content { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); width: 90%; max-height: 90%; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-.modal-header { font-size: 1rem; font-weight: bold; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
-#modal-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; max-height: 300px; }
-.modal-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--bg-surface); border-radius: 4px; font-size: 0.85rem;}
-.modal-item input { width: 60%; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; }
-.modal-actions { display: flex; gap: 5px; }
-.modal-btn { background: var(--bg-main); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
-.modal-btn:hover { background: var(--border-color); }
+
+#modal-overlay, #permission-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(240,240,243,0.9); z-index: 200; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+.modal-content, #permission-overlay > div { background: var(--neu-bg); padding: 20px; border-radius: 15px; border: none; width: 90%; max-height: 90%; display: flex; flex-direction: column; box-shadow: 10px 10px 20px var(--neu-dark), -10px -10px 20px var(--neu-light); }
+#save-preset-container { background: var(--neu-bg); padding: 15px; border-radius: 15px; border: none; box-shadow: 5px 5px 10px var(--neu-dark), -5px -5px 10px var(--neu-light); margin-bottom: 15px; }
+.modal-header { font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+#modal-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; max-height: 300px; padding: 5px; }
+.modal-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: transparent; border-radius: 10px; font-size: 0.85rem; box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light); }
+.modal-item input { width: 55%; padding: 6px 10px; }
+.modal-actions { display: flex; gap: 8px; }
+.modal-btn { background: var(--neu-bg); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; box-shadow: 3px 3px 6px var(--neu-dark), -3px -3px 6px var(--neu-light); font-weight: bold; color: var(--text-main); }
+.modal-btn:active { box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--neu-light); }

@@ -2,38 +2,39 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Mini-Player</title>
+    <title>Studio Popout</title>
     <style>
         :root {
-            --bg-main: #0f0f0f;
-            --bg-surface: #1c1c1c;
-            --text-main: #ffffff;
-            --text-muted: #a3a3a3;
-            --border-color: #2a2a2a;
-            --icon-dark: #e5e5e5;
-            /* Novas cores baseadas em tons neutros (aço) em vez de verde */
-            --accent-dark: #6b7280; 
-            --accent-hover: #9ca3af;
+            --bg-main: #ffffff;
+            --bg-surface: #f3f4f6;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #d1d5db;
+            --icon-dark: #374151;
+            --accent-dark: #4b5563;
         }
 
+        /* Fundo de Aço Escovado para toda a janela (Edge-to-Edge) */
         body { 
             width: 100%; height: 100vh; margin: 0; display: flex; flex-direction: column; 
-            background: var(--bg-main); overflow: hidden; font-family: 'Segoe UI', sans-serif;
-            color: var(--text-main); min-width: 200px; min-height: 200px;
+            background: linear-gradient(135deg, #e6e6e6 0%, #cccccc 40%, #999999 50%, #b3b3b3 60%, #f2f2f2 100%);
+            overflow: hidden; font-family: 'Segoe UI', sans-serif;
+            color: var(--text-main); min-width: 200px; min-height: 200px; user-select: none;
         }
 
-        /* Layout Principal Paisagem */
+        /* Painel Interno */
         .layout { 
             display: flex; flex-direction: row; height: 100vh; align-items: center; 
-            padding: 20px 25px; gap: 25px; box-sizing: border-box; width: 100%;
+            padding: 15px 25px; gap: 25px; box-sizing: border-box; width: 100%;
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.5);
         }
         
-        /* Capa (Botão Play/Pause Principal) */
+        /* Moldura Metálica para a Capa do Álbum */
         .thumbnail-container {
-            position: relative; width: 140px; height: 140px; border-radius: 12px; 
-            background: var(--bg-surface); box-shadow: 0 8px 16px rgba(0,0,0,0.4); 
-            border: 1px solid var(--border-color); cursor: pointer; overflow: hidden;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            position: relative; width: 150px; height: 150px; border-radius: 8px; 
+            background: #fff; border: 2px solid #999;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3), inset 0 2px 5px rgba(0,0,0,0.1); 
+            cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
             transition: all 0.3s ease;
         }
         
@@ -42,109 +43,97 @@
             object-fit: cover; z-index: 0; display: none; transition: transform 0.3s ease;
         }
         .thumbnail-container:hover #track-art { transform: scale(1.05); }
-        .thumbnail-icon { font-size: 3.5rem; z-index: 1; position: relative; color: var(--text-muted); }
+        .thumbnail-icon { font-size: 3.5rem; z-index: 1; position: relative; color: var(--text-muted); opacity: 0.5; filter: grayscale(100%); }
         
-        /* Máscara Escura sobre a Capa */
+        /* Máscara Metálica/Translúcida sobre a Capa */
         .overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2;
-            background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; gap: 10px;
-            color: white; opacity: 0; transition: all 0.2s ease;
+            background: rgba(255,255,255,0.7); backdrop-filter: blur(2px);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: var(--icon-dark); opacity: 0; transition: all 0.2s ease;
         }
-        .thumbnail-container:hover .overlay { opacity: 1; background: rgba(0,0,0,0.65); }
-        .overlay.active { opacity: 1; background: rgba(0,0,0,0.7); }
+        .thumbnail-container:hover .overlay { opacity: 1; background: rgba(220,220,220,0.85); }
+        .overlay.active { opacity: 1; background: rgba(200,200,200,0.9); }
 
-        /* Botões exclusivos do Modo Quadrado */
         .btn-control-small { 
-            display: none; background: none; border: none; color: white; cursor: pointer; 
+            display: none; background: none; border: none; color: var(--icon-dark); cursor: pointer; 
             padding: 5px; transition: transform 0.2s;
         }
-        .btn-control-small:hover { transform: scale(1.15); color: var(--accent-hover); }
+        .btn-control-small:hover { transform: scale(1.15); color: #000; }
 
-        /* Informações e Barras */
+        /* Visor de Informações (ÁREA LIMPA - Sem Fundo Quadrado) */
         .info-container {
             flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0;
-            padding-right: 15px;
+            padding: 15px 0;
         }
         
         .track-title { 
-            font-weight: 700; font-size: 1.15rem; margin-bottom: 2px; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-weight: 800; font-size: 1.15rem; margin-bottom: 2px; color: #111;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 0 #fff;
         }
         .track-artist { 
-            font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+            font-size: 0.85rem; color: var(--icon-dark); margin-bottom: 15px; font-weight: 700;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; text-shadow: 0 1px 0 rgba(255,255,255,0.6);
         }
         
-        /* LINHA DE CONTROLOS (Paisagem) */
-        .controls-row { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; position: relative; }
+        /* LINHA DE CONTROLOS (Botões Livres, Sem Círculos) */
+        .controls-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 15px; }
+        
         .btn-control { 
-            background: none; border: none; cursor: pointer; color: var(--icon-dark); 
-            display: flex; align-items: center; justify-content: center; padding: 5px; transition: color 0.2s;
+            background: none; border: none; width: auto; height: auto;
+            cursor: pointer; color: var(--icon-dark); display: flex; align-items: center; justify-content: center; 
+            transition: all 0.2s; padding: 5px; filter: drop-shadow(0 1px 0 #fff);
         }
-        .btn-control:hover { color: var(--text-main); }
+        .btn-control:hover { color: #111; transform: scale(1.15); }
+        .btn-control:active { transform: scale(0.95); color: #000; }
 
-        /* Separador Vertical e Botões de Acão Extras */
-        .action-divider { width: 1px; height: 20px; background: var(--border-color); margin: 0 5px; }
+        .action-divider { width: 1px; height: 24px; background: #999; margin: 0 5px; box-shadow: 1px 0 0 #fff; }
+        
         .action-btn {
-            background: none; border: none; color: var(--text-muted); cursor: pointer;
+            background: none; border: none; color: var(--icon-dark); cursor: pointer;
             padding: 6px; display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s; border-radius: 50%;
+            transition: all 0.2s; border-radius: 50%; filter: drop-shadow(0 1px 0 #fff);
         }
-        .action-btn:hover { color: var(--text-main); transform: scale(1.1); }
-        .action-btn.active { color: var(--accent-hover); }
+        .action-btn:hover { color: #111; transform: scale(1.15); }
+        .action-btn.active { color: #000; }
         
-        /* Sliders - Agora cinzas como o resto */
+        /* Sliders Metálicos */
         .bar-container { display: flex; align-items: center; gap: 10px; width: 100%; }
-        .bar-container.vol { margin-bottom: 10px; }
-        .bar-icon, .time-text { color: var(--text-muted); font-size: 0.75rem; flex-shrink: 0; }
+        .bar-container.vol { margin-bottom: 10px; justify-content: flex-end; }
+        .bar-icon, .time-text { color: var(--icon-dark); font-size: 0.75rem; flex-shrink: 0; font-weight: 800; filter: drop-shadow(0 1px 0 #fff); }
         
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range] { 
+            -webkit-appearance: none; width: 100%; height: 6px; background: #d1d5db; border-radius: 3px; 
+            border: 1px solid #aaa; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+        }
         input[type=range]:focus { outline: none; }
-        input[type=range]::-webkit-slider-runnable-track { 
-            width: 100%; height: 4px; cursor: pointer; background: var(--border-color); border-radius: 2px;
-        }
         input[type=range]::-webkit-slider-thumb { 
-            height: 12px; width: 12px; border-radius: 50%; background: var(--text-main); 
-            cursor: pointer; -webkit-appearance: none; margin-top: -4px; transition: 0.2s;
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; 
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #e5e5e5 40%, #cccccc 100%); 
+            border: 1px solid #777; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer; margin-top: -1px; 
         }
-        input[type=range]:hover::-webkit-slider-thumb { background: var(--accent-hover); transform: scale(1.2); }
+        input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.1); }
 
-        /* MODO QUADRADO (Ativado ao diminuir a largura) */
+        /* MODO QUADRADO (O Popout Compacto) */
         @media (max-width: 400px) {
-            .layout { padding: 0; justify-content: center; }
-            
-            /* Transforma o contentor de informações num overlay invisível a cobrir o ecrã */
-            .info-container { 
-                position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-                z-index: 60; pointer-events: none; padding: 0; 
-            }
-            
-            /* Esconde textos, sliders, etc. */
+            .layout { padding: 0; box-shadow: none; }
+            .info-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 60; pointer-events: none; padding: 0; background: transparent; border: none; box-shadow: none; }
             .info-container > *:not(.controls-row) { display: none !important; }
-            
-            /* A linha de controlos passa a ocupar o ecrã inteiro invisivelmente */
-            .controls-row { 
-                position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-                margin: 0; pointer-events: none; display: block; 
-            }
-            
-            /* Esconde Prev, Next, -10, +10 e Divider da paisagem */
+            .controls-row { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; pointer-events: none; display: block; }
             .controls-row > *:not(#btn-like):not(#btn-back) { display: none !important; }
             
-            /* Posiciona o Gostar e o Voltar cirurgicamente nos cantos superiores sobre a imagem! */
             #btn-like, #btn-back {
                 pointer-events: auto; position: absolute;
-                background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); 
-                color: white; padding: 8px; width: 36px; height: 36px;
+                background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(229,229,229,0.9) 100%); 
+                border: 1px solid #aaa; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                color: var(--icon-dark); padding: 8px; width: 36px; height: 36px; border-radius: 50%;
             }
             #btn-back { top: 12px; left: 12px; }
             #btn-like { top: 12px; right: 12px; }
             
-            .thumbnail-container { 
-                width: 100vw; height: 100vh; border-radius: 0; border: none; aspect-ratio: 1/1;
-            }
-            .thumbnail-container:hover .overlay { background: rgba(0,0,0,0.6); }
-            .overlay.active { background: rgba(0,0,0,0.7); }
+            .thumbnail-container { width: 100vw; height: 100vh; border-radius: 0; border: none; aspect-ratio: 1/1; }
+            .thumbnail-container:hover .overlay { background: rgba(220,220,220,0.7); }
+            .overlay.active { background: rgba(200,200,200,0.85); }
             .btn-control-small { display: block; }
             #btn-play-pause svg { width: 55px; height: 55px; }
         }

@@ -33,13 +33,10 @@ btnGrantPerm.addEventListener('click', async () => {
 // --- Seletores da Interface ---
 const appPowerBtn = document.getElementById('app-power-btn'); 
 const btnMiniplayer = document.getElementById('btn-miniplayer'); 
-
-// Válvula Nova
 const boosterKnobWrapper = document.getElementById('booster-knob-wrapper');
 const boosterKnob = document.getElementById('booster-knob');
 const boosterValueDisplay = document.getElementById('booster-value');
 
-// Presets e Botões
 const btnShowSave = document.getElementById('btn-show-save');
 const saveContainer = document.getElementById('save-preset-container');
 const newPresetName = document.getElementById('new-preset-name');
@@ -48,7 +45,7 @@ const btnUpload = document.getElementById('btn-upload');
 const fileInput = document.getElementById('file-input');
 const btnDownload = document.getElementById('btn-download');
 
-// Roteamento Duplo e Controlos Individuais
+// Roteamento
 const outputSelect = document.getElementById('output-select');
 const outputSelect2 = document.getElementById('output-select-2');
 const duplicateSwitch = document.getElementById('duplicate-output-switch');
@@ -64,7 +61,7 @@ const iconOut2 = document.getElementById('icon-out-2');
 const labelOut1 = document.getElementById('label-out-1');
 const labelOut2 = document.getElementById('label-out-2');
 
-// IA e Gráfico
+// IA
 const btnExpand = document.getElementById('btn-expand'); 
 const canvas = document.getElementById('eqGraph');
 const ctx = canvas.getContext('2d');
@@ -90,43 +87,40 @@ const btnModalClose = document.getElementById('btn-modal-close');
 let currentTabId = null;
 let currentSelectedPresetKey = 'Padrao'; 
 
-// Ícones SVG Dinâmicos
 const svgHeadphone = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>`;
 const svgSpeaker = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><circle cx="12" cy="14" r="4"></circle><line x1="12" y1="6" x2="12.01" y2="6"></line></svg>`;
 
-// --- Lógica do Botão Ligar/Desligar (Power) ---
 let isAppOn = true;
-
-chrome.storage.local.get(['isAppOn'], (res) => {
-    if (res.isAppOn !== undefined) { isAppOn = res.isAppOn; updatePowerUI(); }
-});
+chrome.storage.local.get(['isAppOn'], (res) => { if (res.isAppOn !== undefined) { isAppOn = res.isAppOn; updatePowerUI(); } });
 
 function updatePowerUI() {
-    if (isAppOn) {
-        appPowerBtn.src = "https://i.imgur.com/L2I8VnN.png"; appPowerBtn.style.opacity = "1"; canvas.style.opacity = "1"; 
-    } else {
-        appPowerBtn.src = "https://i.imgur.com/99zg63i.png"; appPowerBtn.style.opacity = "0.6"; canvas.style.opacity = "0.4"; 
-    }
+    if (isAppOn) { appPowerBtn.src = "https://i.imgur.com/L2I8VnN.png"; appPowerBtn.style.opacity = "1"; canvas.style.opacity = "1"; } 
+    else { appPowerBtn.src = "https://i.imgur.com/99zg63i.png"; appPowerBtn.style.opacity = "0.6"; canvas.style.opacity = "0.4"; }
     sendToEngine({ action: 'set_power_state', isPowerOn: isAppOn });
 }
 
-appPowerBtn.addEventListener('click', () => {
-    isAppOn = !isAppOn; chrome.storage.local.set({ isAppOn: isAppOn });
-    updatePowerUI();
-    appPowerBtn.style.transform = 'scale(0.9)'; setTimeout(() => appPowerBtn.style.transform = 'scale(1)', 150);
-});
+appPowerBtn.addEventListener('click', () => { isAppOn = !isAppOn; chrome.storage.local.set({ isAppOn: isAppOn }); updatePowerUI(); appPowerBtn.style.transform = 'scale(0.9)'; setTimeout(() => appPowerBtn.style.transform = 'scale(1)', 150); });
 
-// --- Lógica do Botão Mini-Player ---
 if (btnMiniplayer) {
     btnMiniplayer.addEventListener('click', () => {
-        if (currentTabId !== null) {
-            chrome.windows.create({ url: `miniplayer.html?tabId=${currentTabId}`, type: 'popup', width: 540, height: 220, focused: true });
-            window.close(); 
-        }
+        if (currentTabId !== null) { chrome.windows.create({ url: `miniplayer.html?tabId=${currentTabId}`, type: 'popup', width: 540, height: 220, focused: true }); window.close(); }
     });
 }
 
-// --- HISTÓRICO DE COMANDOS (UNDO / REDO) ---
+chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0] && !tabs[0].url.startsWith('chrome://')) {
+        currentTabId = tabs[0].id;
+        chrome.runtime.sendMessage({ action: 'request_graph_update', tabId: currentTabId }, (response) => {
+            if (chrome.runtime.lastError || !response || response.status !== "ok") {
+                chrome.runtime.sendMessage({ action: 'init_tab_capture', tabId: currentTabId });
+            }
+        });
+    }
+});
+
+function sendToEngine(msgParams, callback) { if (currentTabId !== null) chrome.runtime.sendMessage({ ...msgParams, tabId: currentTabId }, callback); }
+
+// --- Histórico ---
 let eqHistory = []; let historyIndex = -1; const MAX_HISTORY = 10;
 const btnUndo = document.getElementById('btn-undo'); const btnRedo = document.getElementById('btn-redo');
 
@@ -150,7 +144,6 @@ function doUndo() { if (historyIndex > 0) { historyIndex--; eqPoints = JSON.pars
 function doRedo() { if (historyIndex < eqHistory.length - 1) { historyIndex++; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); } }
 btnUndo.addEventListener('click', doUndo); btnRedo.addEventListener('click', doRedo);
 
-
 const defaultPresets = { 
     'Padrao': [], 
     'Pop Rock': [{f:150,g:2,q:1.2},{f:400,g:1,q:1.2},{f:1000,g:-1,q:1.2},{f:3000,g:1,q:1.2},{f:8000,g:2,q:1.2}], 
@@ -158,17 +151,8 @@ const defaultPresets = {
     'Bass Booster': [{f:150,g:8,q:1.2},{f:400,g:4,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:0,q:1.2},{f:8000,g:0,q:1.2}], 
     'Treble Booster': [{f:150,g:0,q:1.2},{f:400,g:0,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:4,q:1.2},{f:8000,g:8,q:1.2}],
 };
-
 const presetIcons = { 'Pop Rock': '🎸', 'Rock': '🤘', 'Vocal': '🎤', 'Bass Booster': '🔈', 'Treble Booster': '🔊' };
 
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0] && !tabs[0].url.startsWith('chrome://')) {
-        currentTabId = tabs[0].id; chrome.runtime.sendMessage({ action: 'init_tab_capture', tabId: currentTabId });
-    }
-});
-function sendToEngine(msgParams, callback) { if (currentTabId !== null) chrome.runtime.sendMessage({ ...msgParams, tabId: currentTabId }, callback); }
-
-// --- Menu Dropdown e Favoritos ---
 function getStorageData(callback) {
     chrome.storage.local.get(['customPresets', 'customOrder', 'favorites'], (res) => {
         let custom = res.customPresets || {}; let order = res.customOrder || Object.keys(custom); let favs = res.favorites || [];
@@ -178,9 +162,7 @@ function getStorageData(callback) {
 }
 function saveStorageData(custom, order, favs, callback) { chrome.storage.local.set({ customPresets: custom, customOrder: order, favorites: favs }, callback); }
 
-function renderUI() {
-    getStorageData((custom, order, favs) => { renderFavoritesBar(favs); renderDropdownList(custom, order, favs); updateTriggerText(); });
-}
+function renderUI() { getStorageData((custom, order, favs) => { renderFavoritesBar(favs); renderDropdownList(custom, order, favs); updateTriggerText(); }); }
 
 function renderFavoritesBar(favs) {
     favBar.innerHTML = '';
@@ -223,6 +205,9 @@ function selectPresetFromDropdown(key) { presetOptions.classList.remove('open');
 
 function applyPreset(key) {
     currentSelectedPresetKey = key; selectedPointIndex = -1;
+    
+    if (currentTabId !== null) chrome.storage.local.set({ [`preset_${currentTabId}`]: key });
+
     if (key.startsWith('custom_')) {
         const name = key.replace('custom_', '');
         getStorageData((custom) => { if(custom[name]) { eqPoints = Array.isArray(custom[name]) ? custom[name] : custom[name].points; sendPointsToEngine(true); saveHistoryState(eqPoints); } });
@@ -243,9 +228,8 @@ document.addEventListener('click', (e) => {
     if (!e.target.closest('.dots-container')) dotsDropdown.classList.add('hidden');
 });
 
-// --- Modal de Gestão ---
+// Modal de Gestão 
 function openModal(mode) {
-    // Código de modal padronizado mantido
     getStorageData((custom, order, favs) => {
         modalList.innerHTML = ''; modalOverlay.classList.remove('hidden'); modalOverlay.style.display = 'flex';
         if (order.length === 0) { 
@@ -301,7 +285,6 @@ document.getElementById('btn-menu-delete').addEventListener('click', () => { ope
 btnModalClose.addEventListener('click', () => { modalOverlay.classList.add('hidden'); modalOverlay.style.display = 'none'; renderUI(); });
 renderUI();
 
-// --- Expandir Interface ---
 let isExpanded = false;
 function applyExpandState(expanded) {
     isExpanded = expanded;
@@ -312,7 +295,7 @@ function applyExpandState(expanded) {
 chrome.storage.local.get(['isExpanded'], (res) => { if (res.isExpanded) applyExpandState(true); });
 btnExpand.addEventListener('click', () => { const newState = !isExpanded; chrome.storage.local.set({ isExpanded: newState }); applyExpandState(newState); });
 
-// --- ROTEAMENTO E CONTROLOS INDIVIDUAIS (NOVO DESIGN) ---
+// --- Roteamento ---
 async function loadAudioOutputs() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -332,12 +315,10 @@ async function loadAudioOutputs() {
 }
 
 function updateOutputVisuals() {
-    // Atualiza exclusão de opções
     const val1 = outputSelect.value; const val2 = outputSelect2.value;
     Array.from(outputSelect.options).forEach(opt => { opt.disabled = (opt.value !== "" && opt.value === val2); });
     Array.from(outputSelect2.options).forEach(opt => { opt.disabled = (opt.value !== "" && opt.value === val1); });
 
-    // Atualiza Ícones de Acordo com o Nome do Dispositivo
     const text1 = outputSelect.options[outputSelect.selectedIndex]?.text.toLowerCase() || "";
     iconOut1.innerHTML = (text1.includes('headphone') || text1.includes('auscultador') || text1.includes('fone') || text1.includes('airpod')) ? svgHeadphone : svgSpeaker;
     labelOut1.textContent = outputSelect.options[outputSelect.selectedIndex]?.text.substring(0, 15).toUpperCase() || "DISPOSITIVO 1";
@@ -353,41 +334,28 @@ function sendRoutingParams() {
     
     sendToEngine({ 
         action: 'set_routing_params', 
-        deviceId: primary, 
-        secondaryDeviceId: secondary,
-        out1Vol: parseInt(volOut1.value),
-        out2Vol: parseInt(volOut2.value),
-        out1EffectOn: bypassOut1.checked,
-        out2EffectOn: bypassOut2.checked
+        deviceId: primary, secondaryDeviceId: secondary,
+        out1Vol: parseInt(volOut1.value), out2Vol: parseInt(volOut2.value),
+        out1EffectOn: bypassOut1.checked, out2EffectOn: bypassOut2.checked
     });
 }
 
 duplicateSwitch.addEventListener('change', (e) => {
-    if (e.target.checked) {
-        cardOutput2.classList.remove('hidden'); controlsOut1.classList.remove('hidden'); controlsOut2.classList.remove('hidden');
-    } else {
-        cardOutput2.classList.add('hidden'); controlsOut1.classList.add('hidden'); controlsOut2.classList.add('hidden');
-        outputSelect2.value = ""; 
-    }
+    if (e.target.checked) { cardOutput2.classList.remove('hidden'); controlsOut1.classList.remove('hidden'); controlsOut2.classList.remove('hidden'); } 
+    else { cardOutput2.classList.add('hidden'); controlsOut1.classList.add('hidden'); controlsOut2.classList.add('hidden'); outputSelect2.value = ""; }
     updateOutputVisuals(); sendRoutingParams();
 });
 
 outputSelect.addEventListener('change', () => { updateOutputVisuals(); sendRoutingParams(); });
 outputSelect2.addEventListener('change', () => { updateOutputVisuals(); sendRoutingParams(); });
 
-// Eventos de Deslize Metálico
-[volOut1, volOut2].forEach(slider => {
-    slider.addEventListener('input', (e) => {
-        e.target.style.setProperty('--vol-percent', `${e.target.value}%`);
-        sendRoutingParams();
-    });
-});
+[volOut1, volOut2].forEach(slider => { slider.addEventListener('input', (e) => { e.target.style.setProperty('--vol-percent', `${e.target.value}%`); sendRoutingParams(); }); });
 bypassOut1.addEventListener('change', sendRoutingParams);
 bypassOut2.addEventListener('change', sendRoutingParams);
 
 aiInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
 
-// --- Lógica Matemática do Mouse ---
+// --- Lógica do Mouse EQ ---
 let eqPoints = []; const MAX_POINTS = 15;
 let isDragging = false, draggedPointIndex = -1, hoveredPointIndex = -1, selectedPointIndex = -1; 
 const minFreq = 20, maxFreq = 20000, dbLimit = 15;
@@ -397,10 +365,7 @@ function xToFreq(x) { return minFreq * Math.pow(maxFreq / minFreq, x / canvas.wi
 function gainToY(g) { const midY = (canvas.height - 20) / 2; return midY - (g * (midY / dbLimit)); }
 function yToGain(y) { const midY = (canvas.height - 20) / 2; return Math.max(-dbLimit, Math.min(dbLimit, (midY - y) / (midY / dbLimit))); }
 
-function getXY(e) {
-    const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
-}
+function getXY(e) { const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY }; }
 
 let lastSendTime = 0;
 function sendPointsToEngine(force = false) {
@@ -414,16 +379,12 @@ canvas.addEventListener('dblclick', (e) => {
     sendPointsToEngine(true); saveHistoryState(eqPoints); 
 });
 
-canvas.addEventListener('mousedown', (e) => {
-    if (hoveredPointIndex !== -1) { isDragging = true; draggedPointIndex = hoveredPointIndex; selectedPointIndex = hoveredPointIndex; } 
-    else { selectedPointIndex = -1; }
-});
+canvas.addEventListener('mousedown', (e) => { if (hoveredPointIndex !== -1) { isDragging = true; draggedPointIndex = hoveredPointIndex; selectedPointIndex = hoveredPointIndex; } else { selectedPointIndex = -1; } });
 
 canvas.addEventListener('mousemove', (e) => {
     const pos = getXY(e);
     if (isDragging && draggedPointIndex !== -1) {
-        eqPoints[draggedPointIndex].f = Math.max(minFreq, Math.min(maxFreq, xToFreq(pos.x))); eqPoints[draggedPointIndex].g = yToGain(pos.y);
-        sendPointsToEngine(); 
+        eqPoints[draggedPointIndex].f = Math.max(minFreq, Math.min(maxFreq, xToFreq(pos.x))); eqPoints[draggedPointIndex].g = yToGain(pos.y); sendPointsToEngine(); 
     } else {
         hoveredPointIndex = -1;
         for (let i = 0; i < eqPoints.length; i++) {
@@ -458,14 +419,10 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-canvas.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    if (hoveredPointIndex !== -1) { eqPoints.splice(hoveredPointIndex, 1); hoveredPointIndex = -1; selectedPointIndex = -1; sendPointsToEngine(true); saveHistoryState(eqPoints); }
-});
+canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); if (hoveredPointIndex !== -1) { eqPoints.splice(hoveredPointIndex, 1); hoveredPointIndex = -1; selectedPointIndex = -1; sendPointsToEngine(true); saveHistoryState(eqPoints); } });
 
-// --- Desenho do Gráfico ---
-let currentDBResponse = [], currentBoosterDB = 0;
-let currentSpectrum = []; let currentSampleRate = 48000;
+// --- Desenho ---
+let currentDBResponse = [], currentBoosterDB = 0; let currentSpectrum = []; let currentSampleRate = 48000;
 
 function drawGraph() {
     if (!canvas || !ctx) return;
@@ -473,7 +430,6 @@ function drawGraph() {
     const graphHeight = height - paddingBottom, midY = graphHeight / 2, pixelsPerDB = midY / dbLimit;
 
     ctx.clearRect(0, 0, width, height);
-
     ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 1; ctx.beginPath();
     const y12dB = midY - (12 * pixelsPerDB), yMinus12dB = midY + (12 * pixelsPerDB);
     ctx.moveTo(0, y12dB); ctx.lineTo(width, y12dB); ctx.moveTo(0, yMinus12dB); ctx.lineTo(width, yMinus12dB);
@@ -492,9 +448,7 @@ function drawGraph() {
 
     if (currentSpectrum && currentSpectrum.length > 0) {
         const gradient = ctx.createLinearGradient(0, graphHeight, 0, 0);
-        gradient.addColorStop(0, 'rgba(156, 163, 175, 0.05)'); 
-        gradient.addColorStop(0.6, 'rgba(107, 114, 128, 0.25)'); 
-        gradient.addColorStop(1, 'rgba(75, 85, 99, 0.5)'); 
+        gradient.addColorStop(0, 'rgba(156, 163, 175, 0.05)'); gradient.addColorStop(0.6, 'rgba(107, 114, 128, 0.25)'); gradient.addColorStop(1, 'rgba(75, 85, 99, 0.5)'); 
         ctx.fillStyle = gradient; const nyquist = currentSampleRate / 2; const binCount = currentSpectrum.length;
 
         for (let i = 1; i < binCount; i++) {
@@ -532,10 +486,8 @@ function drawGraph() {
 function animationLoop() {
     if (currentTabId !== null && isAppOn) {
         chrome.runtime.sendMessage({ action: 'get_spectrum', tabId: currentTabId }, (res) => {
-            if (!chrome.runtime.lastError && res && res.data) {
-                currentSpectrum = res.data; if (res.sampleRate) currentSampleRate = res.sampleRate;
-            } else { currentSpectrum = []; }
-            drawGraph(); requestAnimationFrame(animationLoop);
+            if (!chrome.runtime.lastError && res && res.data) { currentSpectrum = res.data; if (res.sampleRate) currentSampleRate = res.sampleRate; } 
+            else { currentSpectrum = []; } drawGraph(); requestAnimationFrame(animationLoop);
         });
     } else { currentSpectrum = []; drawGraph(); requestAnimationFrame(animationLoop); }
 }
@@ -549,6 +501,15 @@ chrome.runtime.onMessage.addListener((message) => {
         const vol = message.boosterVolume || 100;
         setKnobValue(vol);
         
+        // RECUPERAÇÃO CORRIGIDA: Força o UI a atualizar o favorito!
+        chrome.storage.local.get([`preset_${currentTabId}`], (res) => {
+            if (res[`preset_${currentTabId}`]) {
+                currentSelectedPresetKey = res[`preset_${currentTabId}`];
+                updateTriggerText();
+                renderUI(); 
+            }
+        });
+        
         if (message.routing) {
             if (message.routing.deviceId !== undefined) outputSelect.value = message.routing.deviceId;
             if (message.routing.secondaryDeviceId) {
@@ -560,14 +521,8 @@ chrome.runtime.onMessage.addListener((message) => {
                 cardOutput2.classList.add('hidden'); controlsOut1.classList.add('hidden'); controlsOut2.classList.add('hidden');
                 outputSelect2.value = "";
             }
-            
-            // Sync Controlos Individuais
-            volOut1.value = message.routing.out1Vol; volOut1.style.setProperty('--vol-percent', `${message.routing.out1Vol}%`);
-            bypassOut1.checked = message.routing.out1EffectOn;
-            
-            volOut2.value = message.routing.out2Vol; volOut2.style.setProperty('--vol-percent', `${message.routing.out2Vol}%`);
-            bypassOut2.checked = message.routing.out2EffectOn;
-            
+            volOut1.value = message.routing.out1Vol; volOut1.style.setProperty('--vol-percent', `${message.routing.out1Vol}%`); bypassOut1.checked = message.routing.out1EffectOn;
+            volOut2.value = message.routing.out2Vol; volOut2.style.setProperty('--vol-percent', `${message.routing.out2Vol}%`); bypassOut2.checked = message.routing.out2EffectOn;
             updateOutputVisuals();
         }
 
@@ -580,47 +535,30 @@ chrome.runtime.onMessage.addListener((message) => {
 
 animationLoop();
 
-// --- NOVA VÁLVULA DE AÇO (Visual Fotorealista) ---
-let isKnobDragging = false;
-let currentBoosterVal = 100;
-
+// --- Booster ---
+let isKnobDragging = false; let currentBoosterVal = 100;
 function setKnobValue(vol) {
-    currentBoosterVal = Math.max(100, Math.min(300, vol));
-    boosterValueDisplay.textContent = `${currentBoosterVal}%`;
-    const percent = (currentBoosterVal - 100) / 200;
-    const angle = percent * 270; // Preenche de 0 a 270 graus
-    
-    boosterKnobWrapper.style.setProperty('--fill-angle', `${angle}deg`);
-    boosterKnob.style.transform = `rotate(calc(-135deg + ${angle}deg))`;
+    currentBoosterVal = Math.max(100, Math.min(300, vol)); boosterValueDisplay.textContent = `${currentBoosterVal}%`;
+    const percent = (currentBoosterVal - 100) / 200; const angle = percent * 270; 
+    boosterKnobWrapper.style.setProperty('--fill-angle', `${angle}deg`); boosterKnob.style.transform = `rotate(calc(-135deg + ${angle}deg))`;
 }
-
 function handleKnobDrag(e) {
-    if (!isKnobDragging) return;
-    const rect = boosterKnobWrapper.getBoundingClientRect();
+    if (!isKnobDragging) return; const rect = boosterKnobWrapper.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2; const centerY = rect.top + rect.height / 2;
-    
     let angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
     angle += 90; if (angle < -180) angle += 360; if (angle > 180) angle -= 360;
-
     if (angle < -135) angle = -135; if (angle > 135) angle = 135;
-    const percent = (angle + 135) / 270;
-    const newVol = Math.round(100 + (percent * 200));
-    
-    setKnobValue(newVol);
-    sendToEngine({ action: 'set_booster', volume: currentBoosterVal });
+    const percent = (angle + 135) / 270; const newVol = Math.round(100 + (percent * 200));
+    setKnobValue(newVol); sendToEngine({ action: 'set_booster', volume: currentBoosterVal });
 }
-
 boosterKnob.addEventListener('mousedown', (e) => { isKnobDragging = true; handleKnobDrag(e); });
 document.addEventListener('mousemove', handleKnobDrag); document.addEventListener('mouseup', () => { isKnobDragging = false; });
 
-
-// --- Salvar, Importar e Exportar ---
 btnShowSave.addEventListener('click', () => { saveContainer.classList.toggle('hidden'); newPresetName.focus(); });
 btnSavePreset.addEventListener('click', () => {
     const name = newPresetName.value.trim(); if (!name) return;
     getStorageData((custom, order, favs) => {
-        custom[name] = { points: eqPoints, type: 'created' };
-        if(!order.includes(name)) order.push(name);
+        custom[name] = { points: eqPoints, type: 'created' }; if(!order.includes(name)) order.push(name);
         saveStorageData(custom, order, favs, () => { newPresetName.value = ''; saveContainer.classList.add('hidden'); currentSelectedPresetKey = `custom_${name}`; renderUI(); });
     });
 });
@@ -635,17 +573,11 @@ fileInput.addEventListener('change', (e) => {
                 const data = JSON.parse(evt.target.result);
                 if (data && data.points && Array.isArray(data.points)) {
                     eqPoints = data.points; sendPointsToEngine(true); saveHistoryState(eqPoints); 
-                    const rawName = data.presetName ? data.presetName.replace('Preset - ', '') : "Importado";
-                    const importName = `Preset - ${rawName}`;
-                    getStorageData((custom, order, favs) => {
-                        custom[importName] = { points: eqPoints, type: 'imported' };
-                        if(!order.includes(importName)) order.push(importName);
-                        saveStorageData(custom, order, favs, () => { currentSelectedPresetKey = `custom_${importName}`; renderUI(); });
-                    });
+                    const rawName = data.presetName ? data.presetName.replace('Preset - ', '') : "Importado"; const importName = `Preset - ${rawName}`;
+                    getStorageData((custom, order, favs) => { custom[importName] = { points: eqPoints, type: 'imported' }; if(!order.includes(importName)) order.push(importName); saveStorageData(custom, order, favs, () => { currentSelectedPresetKey = `custom_${importName}`; renderUI(); }); });
                 } else { alert("Arquivo JSON inválido."); }
             } catch (err) { alert("Erro ao ler o arquivo."); }
-        };
-        reader.readAsText(file); 
+        }; reader.readAsText(file); 
     } e.target.value = ''; 
 });
 
@@ -657,37 +589,23 @@ btnDownload.addEventListener('click', () => {
     document.body.appendChild(a); a.click(); a.remove();
 });
 
-// --- LÓGICA DA IA ---
 function sendAiCommand(promptText) {
     if (promptText === "") return;
     aiStatus.textContent = "A IA está pensando... 🤔"; aiStatus.classList.remove('hidden'); aiInput.style.height = 'auto';
     const isNewCurve = aiNewCurveSwitch.checked; const pointsToSend = isNewCurve ? [] : eqPoints; 
-
-    sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => {
-        setTimeout(() => { sendToEngine({ action: 'request_graph_update' }); window.justGotAIPoints = true; }, 1000);
-    });
+    sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => { setTimeout(() => { sendToEngine({ action: 'request_graph_update' }); window.justGotAIPoints = true; }, 1000); });
     aiInput.value = ""; setTimeout(() => { aiStatus.textContent = "Curva ajustada! 🚀"; setTimeout(() => aiStatus.classList.add('hidden'), 3000); }, 1500);
 }
-
 btnSendAi.addEventListener('click', () => sendAiCommand(aiInput.value.trim()));
 aiInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiCommand(aiInput.value.trim()); } });
 
-// --- MICROFONE ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
 let recognition = null; let isRecording = false;
-
 if (SpeechRecognition) {
     recognition = new SpeechRecognition(); recognition.continuous = false; recognition.interimResults = true; recognition.lang = 'pt-BR'; 
     recognition.onstart = () => { isRecording = true; micStatus.classList.remove('hidden'); btnMic.classList.add('recording'); };
     recognition.onresult = (e) => { let t = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { t += e.results[i][0].transcript; } aiInput.value = t; aiInput.dispatchEvent(new Event('input')); };
     recognition.onend = () => { isRecording = false; micStatus.classList.add('hidden'); btnMic.classList.remove('recording'); const f = aiInput.value.trim(); if (f !== "") sendAiCommand(f); };
-    recognition.onerror = (e) => { 
-        isRecording = false; micStatus.classList.add('hidden'); btnMic.classList.remove('recording');
-        if (e.error === 'not-allowed') { chrome.runtime.openOptionsPage(); } else { micStatus.textContent = "Erro: " + e.error; micStatus.classList.remove('hidden'); setTimeout(() => micStatus.classList.add('hidden'), 3000); } 
-    };
+    recognition.onerror = (e) => { isRecording = false; micStatus.classList.add('hidden'); btnMic.classList.remove('recording'); if (e.error === 'not-allowed') { chrome.runtime.openOptionsPage(); } else { micStatus.textContent = "Erro: " + e.error; micStatus.classList.remove('hidden'); setTimeout(() => micStatus.classList.add('hidden'), 3000); } };
 } else { btnMic.style.display = 'none'; }
-
-btnMic.addEventListener('click', async () => {
-    if (!recognition || isRecording) return; isRecording = true; 
-    try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); stream.getTracks().forEach(track => track.stop()); recognition.start(); } catch (err) {}
-});
+btnMic.addEventListener('click', async () => { if (!recognition || isRecording) return; isRecording = true; try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); stream.getTracks().forEach(track => track.stop()); recognition.start(); } catch (err) {} });
