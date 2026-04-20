@@ -1,11 +1,35 @@
-// --- Lógica de Permissões de Acesso ---
+// --- Lógica de Tema (Dark/Light Mode) ---
+const themeToggle = document.getElementById('theme-toggle');
+chrome.storage.local.get(['theme'], (res) => {
+    if (res.theme === 'dark') document.body.classList.add('dark-mode');
+});
+
+if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        chrome.storage.local.set({ theme: isDark ? 'dark' : 'light' });
+    });
+}
+
+// --- Lógica de Permissões e Chave API Inicial ---
 const permOverlay = document.getElementById('permission-overlay');
-const btnGrantPerm = document.getElementById('btn-grant-permission');
-const permError = document.getElementById('perm-error');
+const btnGrantMic = document.getElementById('btn-grant-mic');
+const permSuccessMic = document.getElementById('perm-success-mic');
+const setupApiKeyInput = document.getElementById('setup-api-key');
+const btnSaveSetupApi = document.getElementById('btn-save-setup-api');
+const btnFinishSetup = document.getElementById('btn-finish-setup');
+
+const aiActiveSection = document.getElementById('ai-active-section');
+const aiWarningSection = document.getElementById('ai-warning-section');
+const btnOpenOptions = document.getElementById('btn-open-options');
+
+let hasMicPermission = false;
 
 function checkAndEnforcePermissions() {
     navigator.permissions.query({name: 'microphone'}).then((result) => {
         if (result.state === 'granted') {
+            hasMicPermission = true;
             permOverlay.classList.add('hidden');
             permOverlay.style.display = 'none';
             loadAudioOutputs(); 
@@ -15,20 +39,62 @@ function checkAndEnforcePermissions() {
         }
     });
 }
-checkAndEnforcePermissions(); 
 
-btnGrantPerm.addEventListener('click', async () => {
+function checkApiKeyStatus() {
+    chrome.storage.local.get(['geminiApiKey'], (res) => {
+        if (res.geminiApiKey && res.geminiApiKey.trim() !== '') {
+            aiActiveSection.classList.remove('hidden');
+            aiWarningSection.classList.add('hidden');
+        } else {
+            aiActiveSection.classList.add('hidden');
+            aiWarningSection.classList.remove('hidden');
+        }
+    });
+}
+
+checkAndEnforcePermissions(); 
+checkApiKeyStatus();
+
+// Setup Passo 1: Microfone
+btnGrantMic.addEventListener('click', async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach(track => track.stop()); 
-        permOverlay.classList.add('hidden');
-        permOverlay.style.display = 'none';
+        hasMicPermission = true;
+        btnGrantMic.classList.add('hidden');
+        permSuccessMic.classList.remove('hidden');
+        btnFinishSetup.disabled = false;
         loadAudioOutputs(); 
     } catch (err) {
-        permError.classList.remove('hidden');
-        setTimeout(() => chrome.runtime.openOptionsPage(), 2000);
+        alert("Permissão bloqueada! Redirecionando para as opções do navegador...");
+        setTimeout(() => chrome.runtime.openOptionsPage(), 1500);
     }
 });
+
+// Setup Passo 2: API
+btnSaveSetupApi.addEventListener('click', () => {
+    const newKey = setupApiKeyInput.value.trim();
+    if (newKey) {
+        chrome.storage.local.set({ geminiApiKey: newKey }, () => {
+            btnSaveSetupApi.textContent = "Chave Salva ✔️";
+            btnSaveSetupApi.style.color = "#10b981";
+            checkApiKeyStatus();
+            btnFinishSetup.disabled = false; // Permite concluir mesmo se pulou o mic (embora não seja ideal)
+        });
+    }
+});
+
+// Concluir Setup
+btnFinishSetup.addEventListener('click', () => {
+    if (hasMicPermission) {
+        permOverlay.classList.add('hidden');
+        permOverlay.style.display = 'none';
+    } else {
+        alert("Por favor, libere o acesso ao microfone primeiro.");
+    }
+});
+
+btnOpenOptions.addEventListener('click', () => { chrome.runtime.openOptionsPage(); });
 
 // --- Seletores da Interface ---
 const appPowerBtn = document.getElementById('app-power-btn'); 
@@ -205,9 +271,7 @@ function selectPresetFromDropdown(key) { presetOptions.classList.remove('open');
 
 function applyPreset(key) {
     currentSelectedPresetKey = key; selectedPointIndex = -1;
-    
     if (currentTabId !== null) chrome.storage.local.set({ [`preset_${currentTabId}`]: key });
-
     if (key.startsWith('custom_')) {
         const name = key.replace('custom_', '');
         getStorageData((custom) => { if(custom[name]) { eqPoints = Array.isArray(custom[name]) ? custom[name] : custom[name].points; sendPointsToEngine(true); saveHistoryState(eqPoints); } });
@@ -430,7 +494,8 @@ function drawGraph() {
     const graphHeight = height - paddingBottom, midY = graphHeight / 2, pixelsPerDB = midY / dbLimit;
 
     ctx.clearRect(0, 0, width, height);
-    ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.strokeStyle = document.body.classList.contains('dark-mode') ? '#4b5563' : '#d1d5db'; 
+    ctx.lineWidth = 1; ctx.beginPath();
     const y12dB = midY - (12 * pixelsPerDB), yMinus12dB = midY + (12 * pixelsPerDB);
     ctx.moveTo(0, y12dB); ctx.lineTo(width, y12dB); ctx.moveTo(0, yMinus12dB); ctx.lineTo(width, yMinus12dB);
     ctx.lineWidth = 2; ctx.moveTo(0, midY); ctx.lineTo(width, midY); ctx.stroke();
@@ -439,7 +504,7 @@ function drawGraph() {
     ctx.fillText('+12dB', 4, y12dB - 4); ctx.fillText('0dB', 4, midY - 4); ctx.fillText('-12dB', 4, yMinus12dB - 4);
 
     const freqsToLabel = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
-    ctx.textAlign = 'center'; ctx.strokeStyle = '#f3f4f6'; ctx.lineWidth = 1;
+    ctx.textAlign = 'center'; ctx.strokeStyle = document.body.classList.contains('dark-mode') ? '#374151' : '#f3f4f6'; ctx.lineWidth = 1;
     freqsToLabel.forEach(freq => {
         const x = freqToX(freq); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, graphHeight); ctx.stroke();
         let textX = x; if (freq === 20) textX += 5; if (freq === 20000) textX -= 10;
@@ -448,7 +513,11 @@ function drawGraph() {
 
     if (currentSpectrum && currentSpectrum.length > 0) {
         const gradient = ctx.createLinearGradient(0, graphHeight, 0, 0);
-        gradient.addColorStop(0, 'rgba(156, 163, 175, 0.05)'); gradient.addColorStop(0.6, 'rgba(107, 114, 128, 0.25)'); gradient.addColorStop(1, 'rgba(75, 85, 99, 0.5)'); 
+        const isDark = document.body.classList.contains('dark-mode');
+        gradient.addColorStop(0, isDark ? 'rgba(75, 85, 99, 0.05)' : 'rgba(156, 163, 175, 0.05)'); 
+        gradient.addColorStop(0.6, isDark ? 'rgba(107, 114, 128, 0.3)' : 'rgba(107, 114, 128, 0.25)'); 
+        gradient.addColorStop(1, isDark ? 'rgba(156, 163, 175, 0.6)' : 'rgba(75, 85, 99, 0.5)'); 
+        
         ctx.fillStyle = gradient; const nyquist = currentSampleRate / 2; const binCount = currentSpectrum.length;
 
         for (let i = 1; i < binCount; i++) {
@@ -465,7 +534,8 @@ function drawGraph() {
     }
 
     if (currentDBResponse && currentDBResponse.length > 0) {
-        ctx.strokeStyle = '#4b5563'; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.beginPath();
+        ctx.strokeStyle = document.body.classList.contains('dark-mode') ? '#9ca3af' : '#4b5563'; 
+        ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.beginPath();
         for (let i = 0; i < currentDBResponse.length; i++) {
             const x = (i / (currentDBResponse.length - 1)) * width;
             let y = Math.max(0, Math.min(graphHeight, midY - ((currentDBResponse[i] + currentBoosterDB) * pixelsPerDB)));
@@ -477,9 +547,9 @@ function drawGraph() {
     for (let i = 0; i < eqPoints.length; i++) {
         const px = freqToX(eqPoints[i].f), py = gainToY(eqPoints[i].g);
         ctx.beginPath(); ctx.arc(px, py, (i === hoveredPointIndex || i === draggedPointIndex || i === selectedPointIndex) ? 6 : 4, 0, 2 * Math.PI);
-        if (i === selectedPointIndex || i === draggedPointIndex) ctx.fillStyle = '#374151'; 
-        else if (i === hoveredPointIndex) ctx.fillStyle = '#9ca3af'; else ctx.fillStyle = '#ffffff'; 
-        ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#1f2937'; ctx.stroke();
+        if (i === selectedPointIndex || i === draggedPointIndex) ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#374151'; 
+        else if (i === hoveredPointIndex) ctx.fillStyle = '#9ca3af'; else ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#4b5563' : '#ffffff'; 
+        ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = document.body.classList.contains('dark-mode') ? '#1f2937' : '#1f2937'; ctx.stroke();
     }
 }
 
@@ -501,12 +571,10 @@ chrome.runtime.onMessage.addListener((message) => {
         const vol = message.boosterVolume || 100;
         setKnobValue(vol);
         
-        // RECUPERAÇÃO CORRIGIDA: Força o UI a atualizar o favorito!
         chrome.storage.local.get([`preset_${currentTabId}`], (res) => {
             if (res[`preset_${currentTabId}`]) {
                 currentSelectedPresetKey = res[`preset_${currentTabId}`];
-                updateTriggerText();
-                renderUI(); 
+                updateTriggerText(); renderUI(); 
             }
         });
         

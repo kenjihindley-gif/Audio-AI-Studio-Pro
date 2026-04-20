@@ -1,3 +1,21 @@
+// --- Sincronização de Tema (Neumorfismo Light/Dark) ---
+chrome.storage.local.get(['theme'], (res) => {
+    if (res.theme === 'dark') document.body.classList.add('dark-mode');
+});
+
+// Escuta mudanças em tempo real (Se mudar no Popup, o Mini-Player muda na hora!)
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.theme) {
+        if (changes.theme.newValue === 'dark') {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+    }
+});
+
+// ... (Mantenha todo o resto do seu código original do miniplayer.js abaixo disto) ...
+
 const urlParams = new URLSearchParams(window.location.search);
 const targetTabId = parseInt(urlParams.get('tabId'));
 

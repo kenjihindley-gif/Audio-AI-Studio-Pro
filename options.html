@@ -2,22 +2,103 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Configurações da Extensão</title>
+    <title>Configurações - Studio Pro</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { width: 100%; max-width: 600px; margin: 40px auto; }
-        .box { background: var(--bg-surface); padding: 30px; border-radius: 12px; text-align: center; border: 1px solid var(--border-color); }
+        body { 
+            width: 100%; height: 100vh; display: flex; justify-content: center; align-items: center; 
+            margin: 0; padding: 0; box-sizing: border-box; transition: background-color 0.3s ease;
+            background: var(--neu-bg);
+        }
+        .container { 
+            width: 480px; padding: 30px; border-radius: 15px; 
+            box-shadow: 10px 10px 20px var(--neu-dark), -10px -10px 20px var(--neu-light); 
+            background: var(--neu-bg); transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .settings-section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 1rem; color: var(--text-main); font-weight: 800; margin-bottom: 5px;
+            transition: color 0.3s ease;
+        }
+        .section-desc {
+            font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4;
+            transition: color 0.3s ease;
+        }
+        
+        /* Área da API */
+        .api-input-container { position: relative; display: flex; align-items: center; margin-bottom: 20px; }
+        .api-input-container input { padding-right: 40px; font-family: monospace; letter-spacing: 1px; font-size: 0.95rem; }
+        .eye-icon { 
+            position: absolute; right: 10px; cursor: pointer; color: var(--icon-dark); 
+            background: none; border: none; padding: 5px; box-shadow: none; font-size: 1.2rem;
+            filter: drop-shadow(0 1px 0 rgba(255,255,255,0.5)); transition: transform 0.2s;
+        }
+        body.dark-mode .eye-icon { filter: drop-shadow(0 1px 0 rgba(0,0,0,0.5)); }
+        .eye-icon:hover { box-shadow: none; transform: scale(1.1); }
+        .btn-group { display: flex; gap: 15px; }
+
+        /* Status do Microfone */
+        .mic-status-box {
+            display: flex; justify-content: space-between; align-items: center;
+            background: transparent; padding: 12px 15px; border-radius: 10px;
+            box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light);
+        }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h1>Permissão de Microfone</h1>
-        <p style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
-            Para usar comandos de voz na extensão, precisamos que você conceda acesso ao microfone. Isso só precisa ser feito uma vez.
-        </p>
-        <button id="btn-request" class="btn-primary" style="padding: 12px 24px; font-size: 1rem;">Conceder Permissão</button>
-        <p id="status-msg" style="margin-top: 20px; font-weight: bold;"></p>
+    <div style="position: absolute; top: 20px; right: 20px;">
+        <div class="theme-switch" id="theme-toggle" title="Alternar Modo Escuro">
+            <span style="font-size: 0.6rem;">☀️</span>
+            <span style="font-size: 0.6rem;">🌙</span>
+            <div class="theme-slider"></div>
+        </div>
     </div>
+
+    <div class="container">
+        <div style="text-align: center; margin-bottom: 25px;">
+            <img src="https://i.imgur.com/L2I8VnN.png" style="height: 40px; filter: grayscale(100%) brightness(1.3); margin-bottom: 10px;">
+            <h2 style="color: var(--text-main); margin: 0; transition: color 0.3s ease;">Configurações do Studio</h2>
+        </div>
+        
+        <div class="settings-section">
+            <h3 class="section-title">1. Permissão de Microfone 🎙️</h3>
+            <p class="section-desc">Necessária para capturar o áudio das guias do navegador, ler os dispositivos de saída de som (Auscultadores/Colunas) e ouvir os seus comandos de voz.</p>
+            
+            <div class="mic-status-box">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="mic-indicator" style="font-size: 1.2rem;">❌</span>
+                    <span id="mic-status-text" style="font-size: 0.85rem; font-weight: bold; color: #ef4444;">Acesso Bloqueado</span>
+                </div>
+                <button id="btn-req-mic" class="metal-button" style="font-size: 0.75rem; padding: 6px 12px;">Permitir Acesso</button>
+            </div>
+        </div>
+
+        <hr style="margin: 25px 0;">
+
+        <div class="settings-section">
+            <h3 class="section-title">2. Chave da API Gemini 🤖</h3>
+            <p class="section-desc">Insira a sua chave da API do Google Gemini para desbloquear o assistente inteligente avançado. Sem ela, a IA permanecerá adormecida.</p>
+
+            <div class="api-input-container">
+                <input type="password" id="api-key-input" placeholder="Cole a sua chave API (AIzaSy...) aqui..." disabled>
+                <button class="eye-icon" id="toggle-visibility" title="Mostrar/Esconder">👁️</button>
+            </div>
+
+            <div class="btn-group" id="view-mode-btns">
+                <button class="metal-button" id="btn-edit" style="flex: 1;">Editar Chave</button>
+            </div>
+            
+            <div class="btn-group hidden" id="edit-mode-btns">
+                <button class="btn-white" id="btn-cancel" style="flex: 1;">Cancelar</button>
+                <button class="metal-button" id="btn-save" style="flex: 1; color: #111;">Aplicar</button>
+            </div>
+            
+            <p id="status-msg" style="text-align: center; font-size: 0.85rem; margin-top: 15px; color: var(--text-main); font-weight: 700;" class="hidden"></p>
+        </div>
+    </div>
+
     <script src="options.js"></script>
 </body>
 </html>
