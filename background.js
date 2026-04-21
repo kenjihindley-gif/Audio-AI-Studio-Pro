@@ -48,7 +48,7 @@ function captureTab(tabId) {
     });
 }
 
-// --- O CÉREBRO DA IA (Com Engenharia de Prompt Ultra Expandida) ---
+// --- O CÉREBRO DA IA (Com Multiplicadores de Intensidade e Termos Comportamentais) ---
 async function processPromptWithGemini(userPrompt, currentPoints, isNewCurve) {
     const data = await chrome.storage.local.get(['geminiApiKey']);
     const GEMINI_API_KEY = data.geminiApiKey;
@@ -60,19 +60,24 @@ async function processPromptWithGemini(userPrompt, currentPoints, isNewCurve) {
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
     
-    // Prompt de Sistema com Dicionário de Áudio Expandido (Cheat Sheet 20x)
     const systemInstruction = `Você é um engenheiro de masterização experiente. O formato de saída DEVE SER EXATAMENTE E APENAS UM ARRAY JSON contendo objetos com "f" (frequência em Hz, 20 a 20000), "g" (ganho em dB, de -15 a 15) e "q" (fator Q, de 0.1 a 10, padrão 1.2). NÃO escreva introduções ou crases de markdown.
     
 GUIA DE INTERPRETAÇÃO DE FREQUÊNCIAS E SINÔNIMOS (Cheat Sheet):
 - GRAVES (20Hz a 250Hz): grave, gordo, peso, sub, tremor, profundo, cheio, quente, boom, embolado, sujo, turvo, lama, encorpado, massivo, boomy, muddy, grosso, inchado, pancada, soco, kick.
-- MÉDIOS GRAVES (250Hz a 500Hz): papelão, caixa, boxy, nasal baixo, oco, fechado, abafado, madeira, veludo, opaco, sem vida, som de quarto, lama média, fofo.
-- MÉDIOS (500Hz a 2000Hz): médio, nasal, telefone, megafone, buzina, honky, lata, plástico, rádio antigo, fanho, agressivo médio, na cara, voz projetada.
-- MÉDIOS AGUDOS (2000Hz a 5000Hz): estridente, ardido, cortante, agressivo, presença, irritante, rasgado, pontudo, metálico, afiado, perfurante, harsh, fadiga, cansaço auditivo, clareza, definição, estalo, voz muito aguda.
+- MÉDIOS GRAVES (250Hz a 500Hz): papelão, caixa, boxy, nasal baixo, oco, fechado, madeira, veludo, opaco, sem vida, som de quarto, lama média, fofo.
+- MÉDIOS (500Hz a 2000Hz): médio, nasal, telefone, megafone, buzina, honky, lata, plástico, rádio antigo, fanho, duro, na cara, mordida. (ATENÇÃO: Se o usuário disser que a voz está "FRACA" ou "SUMIDA", você deve AUMENTAR aqui para dar projeção).
+- MÉDIOS AGUDOS (2000Hz a 5000Hz): estridente, ardido, cortante, agressivo, presença, irritante, rasgado, pontudo, metálico, afiado, perfurante, harsh, fadiga, cansaço auditivo, clareza, definição, estalo, voz muito aguda. (ATENÇÃO: Se o usuário disser que a voz está "ABAFADA" ou "TAMPADA", você deve AUMENTAR aqui para desembolar e trazer inteligibilidade).
 - AGUDOS (5000Hz a 8000Hz): sibilância, esser, "s" forte, s forte, chiado, sibilante, assobio, crisp, estalos de boca, excesso de consoantes, sssss, "f" ou "t" fortes.
 - AR / SUPER AGUDOS (8000Hz a 20000Hz): ar, brilho, cristalino, seda, respiração, aberto, cintilante, leveza, fôlego, areia, agudo extremo.
 
-REGRA DE DIREÇÃO (CRÍTICO): 
-Identifique os verbos e adjetivos de direção ("remover", "reduzir", "abaixar", "tirar", "cortar", "limpar", "amenizar", "suavizar", "seco"). Se a intenção for negativa ou de limpeza, você DEVE SUBTRAIR do valor do ganho atual nas frequências indicadas. Se for "aumentar", "mais", "adicionar", você deve SOMAR. NUNCA aumente o ganho de uma frequência quando a intenção for limpar um problema (ex: remover estridência, deixar mais seco, tirar embolado).`;
+REGRA DE DIREÇÃO: 
+Identifique verbos de direção ("remover", "reduzir", "abaixar", "tirar", "cortar", "limpar", "amenizar", "suavizar", "seco"). Se a intenção for negativa, SUBTRAIA do ganho atual. Se for "aumentar", "mais", "adicionar", SOME ao ganho. EXCEÇÃO: Problemas como "fraca" e "abafada" exigem GANHO POSITIVO nas bandas corretas para resolver o defeito.
+
+REGRA DE INTENSIDADE (DOSAGEM DE DB):
+- Se o usuário usar modificadores agressivos ("MUITO", "DEMAIS", "BASTANTE"): Faça uma alteração pesada (ex: +/- 6dB a 9dB).
+- Se o usuário usar modificadores fracos ("POUCO", "UM POUCO", "LEVEMENTE"): Faça uma alteração moderada (ex: +/- 2dB a 3.5dB).
+- Se o usuário pedir um ajuste fino ("SUTIL", "SUTILMENTE"): Faça uma alteração cirúrgica e bem pequena (ex: +/- 0.5dB a 1.5dB).
+- Sem modificadores: Use o ajuste padrão (ex: +/- 4dB a 5dB).`;
 
     let userMessage = `Pedido do usuário: "${userPrompt}"\n\n`;
 
@@ -100,27 +105,36 @@ Identifique os verbos e adjetivos de direção ("remover", "reduzir", "abaixar",
     }
 }
 
-// --- Fallback aprimorado com Dicionário Léxico Array-Based ---
+// --- Fallback com Lógica de Multiplicador de Intensidade ---
 function fallbackMockAI(prompt, currentPoints, isNewCurve) {
     let pts = (!isNewCurve && currentPoints && currentPoints.length > 0) ? JSON.parse(JSON.stringify(currentPoints)) : [ {f: 150, g: 0, q: 1.2}, {f: 400, g: 0, q: 1.2}, {f: 1000, g: 0, q: 1.2}, {f: 3000, g: 0, q: 1.2}, {f: 8000, g: 0, q: 1.2} ];
     const p = prompt.toLowerCase();
     
-    // Vocabulário de Direção
+    // Vocabulário de Direção Geral
     const cutWords = ["menos", "remov", "tir", "abai", "reduz", "cort", "seco", "limp", "ameniz", "suaviz"];
     const isCut = cutWords.some(w => p.includes(w));
-    const dir = isCut ? -5 : 4; // Ajuste mais assertivo (5dB) para limpeza
 
-    // Bancos de Palavras por Região (Cheat Sheet Fallback)
+    // Lógica de Intensidade (Multiplicadores)
+    let intensityMult = 1.0;
+    if (p.includes("muito") || p.includes("bastante") || p.includes("demais") || p.includes("forte")) intensityMult = 1.8; // ~7 a 9 dB
+    else if (p.includes("pouco") || p.includes("levemente")) intensityMult = 0.5; // ~2 dB
+    else if (p.includes("sutil") || p.includes("sutilmente")) intensityMult = 0.25; // ~1 dB
+
+    const boostVal = 4 * intensityMult;
+    const cutVal = -5 * intensityMult;
+    const dir = isCut ? cutVal : boostVal;
+
+    // Bancos de Palavras por Região
     const gravesWords = ["grave", "gordo", "embolado", "peso", "sub", "tremor", "profundo", "cheio", "quente", "boom", "sujo", "turvo", "lama", "encorpado", "massivo", "boomy", "muddy", "grosso", "inchado", "pancada", "soco", "kick"];
-    const mediosGravesWords = ["médio grave", "medio grave", "papelão", "caixa", "boxy", "oco", "fechado", "abafado", "madeira", "veludo", "opaco", "sem vida", "som de quarto", "fofo"];
-    const mediosWords = ["médio", "medio", "nasal", "telefone", "megafone", "buzina", "honky", "lata", "plástico", "rádio", "fanho", "duro", "na cara", "mordida"];
-    const mediosAgudosWords = ["médio agudo", "medio agudo", "estridente", "ardido", "cortante", "presença", "agressivo", "irritante", "rasgado", "pontudo", "metálico", "afiado", "perfurante", "harsh", "fadiga", "cansaço", "estalo", "voz muito aguda"];
+    const mediosGravesWords = ["médio grave", "medio grave", "papelão", "caixa", "boxy", "oco", "fechado", "madeira", "veludo", "opaco", "sem vida", "som de quarto", "fofo"];
+    const mediosWords = ["médio", "medio", "nasal", "telefone", "megafone", "buzina", "honky", "lata", "plástico", "rádio", "fanho", "duro", "na cara", "mordida", "fraca", "sem força", "sumida"];
+    const mediosAgudosWords = ["médio agudo", "medio agudo", "estridente", "ardido", "cortante", "presença", "agressivo", "irritante", "rasgado", "pontudo", "metálico", "afiado", "perfurante", "harsh", "fadiga", "cansaço", "estalo", "voz muito aguda", "abafada", "abafado", "tampada"];
     const agudosWords = ["agudo", "sibilância", "s forte", "chiado", "sibilante", "assobio", "crisp", "ssss", "f forte", "t forte", "ar", "brilho", "cristalino", "seda", "respiração", "aberto", "cintilante", "leveza", "fôlego"];
 
     pts.forEach(pt => {
         // 1. Graves (até 250Hz)
         if (gravesWords.some(w => p.includes(w)) && pt.f <= 250) {
-            pt.g += (p.includes("seco") || p.includes("limp") || p.includes("desembol")) && !p.includes("mais") ? -6 : dir;
+            pt.g += (p.includes("seco") || p.includes("limp") || p.includes("desembol")) && !p.includes("mais") ? cutVal : dir;
         }
         
         // 2. Médios Graves (250Hz - 500Hz)
@@ -130,23 +144,27 @@ function fallbackMockAI(prompt, currentPoints, isNewCurve) {
 
         // 3. Médios (500Hz - 2000Hz)
         if (mediosWords.some(w => p.includes(w)) && pt.f > 500 && pt.f <= 2000) {
-            pt.g += dir;
-        }
-        
-        // 4. Médios Agudos (2000Hz - 5000Hz) - Áre Crítica
-        if (mediosAgudosWords.some(w => p.includes(w)) && pt.f > 2000 && pt.f <= 5000) {
-            if (p.includes("estridente") || p.includes("ardido") || p.includes("perfurante") || p.includes("metálico")) pt.g += -6; // Hard cut
+            // "fraca" / "sumida" -> forçar ganho positivo para resolver o problema
+            if (p.includes("fraca") || p.includes("sem força") || p.includes("sumida")) pt.g += boostVal;
             else pt.g += dir;
         }
         
-        // 5. Agudos e Ar (5000Hz+) - De-Esser e Brilho
+        // 4. Médios Agudos (2000Hz - 5000Hz)
+        if (mediosAgudosWords.some(w => p.includes(w)) && pt.f > 2000 && pt.f <= 5000) {
+            if (p.includes("estridente") || p.includes("ardido") || p.includes("perfurante") || p.includes("metálico")) pt.g += (cutVal * 1.2); // Hard cut
+            // "abafada" -> forçar ganho positivo para trazer clareza/presença
+            else if (p.includes("abafada") || p.includes("abafado") || p.includes("tampada")) pt.g += boostVal;
+            else pt.g += dir;
+        }
+        
+        // 5. Agudos e Ar (5000Hz+)
         if (agudosWords.some(w => p.includes(w)) && pt.f > 5000) {
-            if (/\bs\b/.test(p) || p.includes("sibilância") || p.includes("s forte") || p.includes("chiado")) pt.g += -6; // De-esser
+            if (/\bs\b/.test(p) || p.includes("sibilância") || p.includes("s forte") || p.includes("chiado")) pt.g += (cutVal * 1.2); // De-esser
             else pt.g += dir;
         }
     });
     
-    // Trava de segurança contra distorção (-15 a +15dB)
+    // Trava de segurança contra distorção
     pts.forEach(pt => { if(pt.g > 15) pt.g = 15; if(pt.g < -15) pt.g = -15; });
     return pts;
 }
