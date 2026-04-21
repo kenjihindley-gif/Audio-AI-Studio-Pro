@@ -6,97 +6,53 @@
     <link rel="stylesheet" href="style.css">
     <style>
         body { 
-            width: 100%; height: 100vh; display: flex; justify-content: center; align-items: center; 
-            margin: 0; padding: 0; box-sizing: border-box; transition: background-color 0.3s ease;
-            background: var(--neu-bg);
+            width: 100%; max-width: 600px; margin: 40px auto; 
+            background-color: var(--neu-bg); color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
-        .container { 
-            width: 480px; padding: 30px; border-radius: 15px; 
-            box-shadow: 10px 10px 20px var(--neu-dark), -10px -10px 20px var(--neu-light); 
-            background: var(--neu-bg); transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        .section { 
+            background: var(--neu-bg); padding: 25px; border-radius: 15px; 
+            box-shadow: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light); 
+            margin-bottom: 25px; 
         }
-        .settings-section {
-            margin-bottom: 20px;
-        }
-        .section-title {
-            font-size: 1rem; color: var(--text-main); font-weight: 800; margin-bottom: 5px;
-            transition: color 0.3s ease;
-        }
-        .section-desc {
-            font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4;
-            transition: color 0.3s ease;
-        }
-        
-        /* Área da API */
-        .api-input-container { position: relative; display: flex; align-items: center; margin-bottom: 20px; }
-        .api-input-container input { padding-right: 40px; font-family: monospace; letter-spacing: 1px; font-size: 0.95rem; }
-        .eye-icon { 
-            position: absolute; right: 10px; cursor: pointer; color: var(--icon-dark); 
-            background: none; border: none; padding: 5px; box-shadow: none; font-size: 1.2rem;
-            filter: drop-shadow(0 1px 0 rgba(255,255,255,0.5)); transition: transform 0.2s;
-        }
-        body.dark-mode .eye-icon { filter: drop-shadow(0 1px 0 rgba(0,0,0,0.5)); }
-        .eye-icon:hover { box-shadow: none; transform: scale(1.1); }
-        .btn-group { display: flex; gap: 15px; }
-
-        /* Status do Microfone */
-        .mic-status-box {
-            display: flex; justify-content: space-between; align-items: center;
-            background: transparent; padding: 12px 15px; border-radius: 10px;
-            box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light);
-        }
+        h2 { color: var(--text-main); margin-bottom: 15px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div style="position: absolute; top: 20px; right: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h1 style="color: var(--text-main); font-size: 1.6rem;" data-i18n="options_title">Configurações - Audio AI Studio Pro</h1>
         <div class="theme-switch" id="theme-toggle" title="Alternar Modo Escuro">
-            <span style="font-size: 0.6rem;">☀️</span>
-            <span style="font-size: 0.6rem;">🌙</span>
+            <svg class="sun-icon" viewBox="0 0 24 24" width="13" height="13" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" width="13" height="13" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
             <div class="theme-slider"></div>
         </div>
     </div>
 
-    <div class="container">
-        <div style="text-align: center; margin-bottom: 25px;">
-            <img src="https://i.imgur.com/L2I8VnN.png" style="height: 40px; filter: grayscale(100%) brightness(1.3); margin-bottom: 10px;">
-            <h2 style="color: var(--text-main); margin: 0; transition: color 0.3s ease;">Configurações do Studio</h2>
+    <div class="section">
+        <h2>🌍 <span data-i18n="lang_settings">Idioma / Language</span></h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px;" data-i18n="lang_desc">Selecione o idioma da interface (Aplica-se ao App e às Opções).</p>
+        <select id="lang-select" class="metal-select" style="max-width: 250px; cursor: pointer;">
+            <option value="pt-br">Português (Brasil)</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
+    <div class="section">
+        <h2>🎙️ <span data-i18n="perm_settings">Permissões (Microfone)</span></h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px;" data-i18n="step1_desc">Necessário para ler o áudio das abas, os dispositivos do PC e comandos de Voz.</p>
+        <button id="btn-grant-mic" class="metal-button" style="max-width: 250px;" data-i18n="btn_grant_mic">Liberar Acesso</button>
+        <p id="perm-status" style="margin-top: 10px; font-weight: bold; color: #10b981;" class="hidden" data-i18n="perm_success">Acesso Liberado! ✔️</p>
+    </div>
+
+    <div class="section">
+        <h2>🤖 <span data-i18n="api_settings">Chave API (Gemini)</span></h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px;" data-i18n="api_desc">Insira sua chave de API do Google Gemini para ativar a IA.</p>
+        <div style="display: flex; gap: 10px;">
+            <input type="password" id="api-key-input" placeholder="AIzaSy..." style="flex: 1;">
+            <button id="btn-save-api" class="metal-button" style="width: 120px;" data-i18n="btn_save">Salvar Chave</button>
         </div>
-        
-        <div class="settings-section">
-            <h3 class="section-title">1. Permissão de Microfone 🎙️</h3>
-            <p class="section-desc">Necessária para capturar o áudio das guias do navegador, ler os dispositivos de saída de som (Auscultadores/Colunas) e ouvir os seus comandos de voz.</p>
-            
-            <div class="mic-status-box">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span id="mic-indicator" style="font-size: 1.2rem;">❌</span>
-                    <span id="mic-status-text" style="font-size: 0.85rem; font-weight: bold; color: #ef4444;">Acesso Bloqueado</span>
-                </div>
-                <button id="btn-req-mic" class="metal-button" style="font-size: 0.75rem; padding: 6px 12px;">Permitir Acesso</button>
-            </div>
-        </div>
-
-        <hr style="margin: 25px 0;">
-
-        <div class="settings-section">
-            <h3 class="section-title">2. Chave da API Gemini 🤖</h3>
-            <p class="section-desc">Insira a sua chave da API do Google Gemini para desbloquear o assistente inteligente avançado. Sem ela, a IA permanecerá adormecida.</p>
-
-            <div class="api-input-container">
-                <input type="password" id="api-key-input" placeholder="Cole a sua chave API (AIzaSy...) aqui..." disabled>
-                <button class="eye-icon" id="toggle-visibility" title="Mostrar/Esconder">👁️</button>
-            </div>
-
-            <div class="btn-group" id="view-mode-btns">
-                <button class="metal-button" id="btn-edit" style="flex: 1;">Editar Chave</button>
-            </div>
-            
-            <div class="btn-group hidden" id="edit-mode-btns">
-                <button class="btn-white" id="btn-cancel" style="flex: 1;">Cancelar</button>
-                <button class="metal-button" id="btn-save" style="flex: 1; color: #111;">Aplicar</button>
-            </div>
-            
-            <p id="status-msg" style="text-align: center; font-size: 0.85rem; margin-top: 15px; color: var(--text-main); font-weight: 700;" class="hidden"></p>
-        </div>
+        <p id="api-status" style="margin-top: 10px; font-weight: bold; color: #10b981;" class="hidden" data-i18n="saved_success">Salvo com sucesso!</p>
     </div>
 
     <script src="options.js"></script>

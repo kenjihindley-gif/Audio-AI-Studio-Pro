@@ -1,3 +1,63 @@
+// --- Dicionário de Idiomas ---
+const i18nDict = {
+    'pt-br': {
+        welcome: "Bem-vindo ao Studio!", step1_title: "1. Microfone & Saídas 🎙️", step1_desc: "Necessário para ler o áudio das abas, os dispositivos do PC e os comandos de Voz.",
+        btn_grant: "Liberar Acesso", perm_ok: "Acesso Liberado! ✔️", step2_title: "2. Chave API Gemini 🤖 (Opcional)", step2_desc: "Sem ela a IA fica desativada. Pode preencher agora ou depois em Opções.",
+        btn_apply_api: "Aplicar API", btn_finish: "Concluir Setup", modal_manage: "Gerenciar Presets", btn_done: "Concluir", info_guide: "Guia Rápido",
+        info_create: "Criar Ponto:", info_create_desc: "Dê 2 cliques na área do gráfico.", info_del: "Apagar Ponto:", info_del_desc: "Botão direito ou tecla [Delete].",
+        info_q: "Ajustar Curva (Q):", info_q_desc: "Com o mouse sobre um ponto, use o scroll (rodinha) para alargar ou estreitar a curva de frequência.",
+        info_slider: "Modo Sliders:", info_slider_desc: "Use o botão de válvulas. Passe o mouse e use o scroll sobre os sliders.", btn_understood: "Entendi",
+        miniplayer: "MINI-PLAYER", favs: "Favoritos", preset: "Preset", btn_upload: "↑ Subir", btn_down: "↓ Down", btn_save_plus: "Salvar +",
+        new_preset: "Nome do novo Preset", btn_ok: "OK", routing: "DUAL OUTPUT ROUTING", dup_out: "Duplicar saída", out1: "OUTPUT 1", out2: "OUTPUT 2",
+        ai_cmd: "Comando com IA ou Voz", new_curve: "Nova curva", btn_ai: "Ajustar com IA", ai_sleep: "🤖 A Inteligência Artificial está adormecida.", apply_key: "Aplicar Chave da API",
+        preset_flat: "Padrão (Flat)", system_default: "Padrão do Sistema", none_out: "Nenhuma", menu_move: "Mover (Ordem)", menu_edit: "Editar Nomes", menu_del: "Excluir Presets"
+    },
+    'en': {
+        welcome: "Welcome to Studio!", step1_title: "1. Mic & Outputs 🎙️", step1_desc: "Required to read audio from tabs, PC devices, and Voice commands.",
+        btn_grant: "Grant Access", perm_ok: "Access Granted! ✔️", step2_title: "2. Gemini API Key 🤖 (Optional)", step2_desc: "Without it, AI is disabled. You can fill it now or later in Options.",
+        btn_apply_api: "Apply API", btn_finish: "Finish Setup", modal_manage: "Manage Presets", btn_done: "Done", info_guide: "Quick Guide",
+        info_create: "Create Point:", info_create_desc: "Double-click on the graph area.", info_del: "Delete Point:", info_del_desc: "Right-click or [Delete] key.",
+        info_q: "Adjust Curve (Q):", info_q_desc: "Hover over a point and use the scroll wheel to widen or narrow the frequency curve.",
+        info_slider: "Sliders Mode:", info_slider_desc: "Use the valves button. Hover and scroll over the sliders to adjust.", btn_understood: "Got it",
+        miniplayer: "MINI-PLAYER", favs: "Favorites", preset: "Preset", btn_upload: "↑ Upload", btn_down: "↓ Down", btn_save_plus: "Save +",
+        new_preset: "New Preset Name", btn_ok: "OK", routing: "DUAL OUTPUT ROUTING", dup_out: "Duplicate output", out1: "OUTPUT 1", out2: "OUTPUT 2",
+        ai_cmd: "AI or Voice Command", new_curve: "New curve", btn_ai: "Adjust with AI", ai_sleep: "🤖 Artificial Intelligence is asleep.", apply_key: "Apply API Key",
+        preset_flat: "Default (Flat)", system_default: "System Default", none_out: "None", menu_move: "Move (Order)", menu_edit: "Edit Names", menu_del: "Delete Presets"
+    }
+};
+
+let currentLang = 'pt-br';
+
+function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18nDict[currentLang] && i18nDict[currentLang][key]) {
+            el.innerHTML = i18nDict[currentLang][key];
+        }
+    });
+    
+    document.getElementById('btn-menu-move').textContent = i18nDict[currentLang].menu_move;
+    document.getElementById('btn-menu-edit').textContent = i18nDict[currentLang].menu_edit;
+    document.getElementById('btn-menu-delete').textContent = i18nDict[currentLang].menu_del;
+    
+    if (outputSelect && outputSelect.options[0]) outputSelect.options[0].textContent = i18nDict[currentLang].system_default;
+    if (outputSelect2 && outputSelect2.options[0]) outputSelect2.options[0].textContent = i18nDict[currentLang].none_out;
+    
+    updateTriggerText();
+}
+
+chrome.storage.local.get(['language'], (res) => {
+    if (res.language) currentLang = res.language;
+    applyTranslations();
+});
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.language) {
+        currentLang = changes.language.newValue;
+        applyTranslations();
+    }
+});
+
 // --- Lógica de Tema (Dark/Light Mode) ---
 const themeToggle = document.getElementById('theme-toggle');
 chrome.storage.local.get(['theme'], (res) => {
@@ -65,7 +125,7 @@ btnGrantMic.addEventListener('click', async () => {
         btnFinishSetup.disabled = false;
         loadAudioOutputs(); 
     } catch (err) {
-        alert("Permissão bloqueada! Redirecionando para as opções do navegador...");
+        alert(currentLang === 'pt-br' ? "Permissão bloqueada! Redirecionando para as opções do navegador..." : "Permission blocked! Redirecting to browser options...");
         setTimeout(() => chrome.runtime.openOptionsPage(), 1500);
     }
 });
@@ -74,7 +134,7 @@ btnSaveSetupApi.addEventListener('click', () => {
     const newKey = setupApiKeyInput.value.trim();
     if (newKey) {
         chrome.storage.local.set({ geminiApiKey: newKey }, () => {
-            btnSaveSetupApi.textContent = "Chave Salva ✔️";
+            btnSaveSetupApi.textContent = currentLang === 'pt-br' ? "Chave Salva ✔️" : "Key Saved ✔️";
             btnSaveSetupApi.style.color = "#10b981";
             checkApiKeyStatus();
             btnFinishSetup.disabled = false; 
@@ -87,7 +147,7 @@ btnFinishSetup.addEventListener('click', () => {
         permOverlay.classList.add('hidden');
         permOverlay.style.display = 'none';
     } else {
-        alert("Por favor, libere o acesso ao microfone primeiro.");
+        alert(currentLang === 'pt-br' ? "Por favor, libere o acesso ao microfone primeiro." : "Please grant microphone access first.");
     }
 });
 
@@ -245,14 +305,12 @@ if (viewSliders) {
         input.addEventListener('input', (e) => handleSliderChange(freq, parseFloat(e.target.value)));
         input.addEventListener('change', () => { sendPointsToEngine(true); saveHistoryState(eqPoints); });
         
-        // NOVO: Scroll wheel sobre os sliders ajusta os valores
         input.addEventListener('wheel', (e) => {
             e.preventDefault();
             let step = e.deltaY < 0 ? 0.5 : -0.5;
             let newVal = Math.max(-15, Math.min(15, parseFloat(input.value) + step));
             input.value = newVal;
             handleSliderChange(freq, newVal);
-            // Salva o histórico suavemente a cada 500ms
             clearTimeout(window.sliderWheelTimeout);
             window.sliderWheelTimeout = setTimeout(() => {
                 sendPointsToEngine(true);
@@ -336,7 +394,11 @@ function renderDropdownList(custom, order, favs) {
         const div = document.createElement('div'); div.className = 'custom-option';
         const isFav = favs.includes(key);
         const starHtml = key === 'Padrao' ? `<div style="width: 44px;"></div>` : `<div class="star-btn-container"><button class="star-btn ${isFav ? 'active' : ''}">${isFav ? '★' : '☆'}</button></div>`;
-        div.innerHTML = `<div class="preset-info"><span class="preset-icon monochrome-icon">${icon}</span> <span>${displayName}</span></div>${starHtml}`;
+        
+        let translatedName = displayName;
+        if (key === 'Padrao') translatedName = i18nDict[currentLang] ? i18nDict[currentLang].preset_flat : 'Padrão (Flat)';
+        
+        div.innerHTML = `<div class="preset-info"><span class="preset-icon monochrome-icon">${icon}</span> <span>${translatedName}</span></div>${starHtml}`;
         div.querySelector('.preset-info').addEventListener('click', () => { selectPresetFromDropdown(key); });
         if (key !== 'Padrao') { div.querySelector('.star-btn-container').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(key, favs, custom, order); }); }
         presetOptions.appendChild(div);
@@ -366,7 +428,12 @@ function applyPreset(key) {
     }
 }
 
-function updateTriggerText() { let name = currentSelectedPresetKey; if (name.startsWith('custom_')) name = name.replace('custom_', ''); presetTriggerText.textContent = name; }
+function updateTriggerText() { 
+    let name = currentSelectedPresetKey; 
+    if (name.startsWith('custom_')) name = name.replace('custom_', ''); 
+    if (name === 'Padrao' && i18nDict[currentLang]) name = i18nDict[currentLang].preset_flat;
+    presetTriggerText.textContent = name; 
+}
 
 presetTrigger.addEventListener('click', () => presetOptions.classList.toggle('open'));
 btnDots.addEventListener('click', () => dotsDropdown.classList.toggle('hidden'));
@@ -375,9 +442,9 @@ document.addEventListener('click', (e) => { if (!e.target.closest('.custom-selec
 function openModal(mode) {
     getStorageData((custom, order, favs) => {
         modalList.innerHTML = ''; modalOverlay.classList.remove('hidden'); modalOverlay.style.display = 'flex';
-        if (order.length === 0) { modalTitle.textContent = "Gerenciar Presets"; modalList.innerHTML = `<div style="text-align:center; padding: 25px 10px; color: var(--text-muted); font-size: 0.9rem;">Nenhum preset encontrado.</div>`; return; }
+        if (order.length === 0) { modalTitle.textContent = i18nDict[currentLang].modal_manage; modalList.innerHTML = `<div style="text-align:center; padding: 25px 10px; color: var(--text-muted); font-size: 0.9rem;">Nenhum preset encontrado.</div>`; return; }
         if (mode === 'move') {
-            modalTitle.textContent = "Mover Ordem";
+            modalTitle.textContent = i18nDict[currentLang].menu_move;
             order.forEach((key, idx) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
                 div.innerHTML = `<span>${key}</span><div class="modal-actions"><button class="modal-btn" ${idx===0 ? 'disabled':''}>↑</button><button class="modal-btn" ${idx===order.length-1 ? 'disabled':''}>↓</button></div>`;
@@ -388,7 +455,7 @@ function openModal(mode) {
             });
         }
         else if (mode === 'edit') {
-            modalTitle.textContent = "Editar Nomes";
+            modalTitle.textContent = i18nDict[currentLang].menu_edit;
             order.forEach((key) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
                 div.innerHTML = `<input type="text" value="${key}"> <button class="modal-btn">Salvar</button>`;
@@ -404,7 +471,7 @@ function openModal(mode) {
             });
         }
         else if (mode === 'delete') {
-            modalTitle.textContent = "Excluir Presets";
+            modalTitle.textContent = i18nDict[currentLang].menu_del;
             order.forEach((key) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
                 div.innerHTML = `<span>${key}</span> <button class="modal-btn" style="color:red;">🗑️</button>`;
@@ -439,8 +506,14 @@ async function loadAudioOutputs() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
         outputSelect.innerHTML = ''; outputSelect2.innerHTML = '';
-        const defaultOpt = document.createElement('option'); defaultOpt.value = ""; defaultOpt.textContent = "Padrão do Sistema"; outputSelect.appendChild(defaultOpt);
-        const defaultOpt2 = document.createElement('option'); defaultOpt2.value = ""; defaultOpt2.textContent = "Selecione a 2ª Saída"; outputSelect2.appendChild(defaultOpt2);
+        
+        const defaultOpt = document.createElement('option'); defaultOpt.value = ""; 
+        defaultOpt.textContent = i18nDict[currentLang] ? i18nDict[currentLang].system_default : "Padrão do Sistema"; 
+        outputSelect.appendChild(defaultOpt);
+        
+        const defaultOpt2 = document.createElement('option'); defaultOpt2.value = ""; 
+        defaultOpt2.textContent = i18nDict[currentLang] ? i18nDict[currentLang].none_out : "Nenhuma"; 
+        outputSelect2.appendChild(defaultOpt2);
 
         audioOutputs.forEach(device => {
             if (device.deviceId === "default" || device.deviceId === "communications") return;
@@ -737,10 +810,11 @@ btnDownload.addEventListener('click', () => {
 
 function sendAiCommand(promptText) {
     if (promptText === "") return;
-    aiStatus.textContent = "A IA está pensando... 🤔"; aiStatus.classList.remove('hidden'); aiInput.style.height = 'auto';
+    aiStatus.textContent = currentLang === 'pt-br' ? "A IA está pensando... 🤔" : "AI is thinking... 🤔"; 
+    aiStatus.classList.remove('hidden'); aiInput.style.height = 'auto';
     const isNewCurve = aiNewCurveSwitch.checked; const pointsToSend = isNewCurve ? [] : eqPoints; 
     sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => { setTimeout(() => { sendToEngine({ action: 'request_graph_update' }); window.justGotAIPoints = true; }, 1000); });
-    aiInput.value = ""; setTimeout(() => { aiStatus.textContent = "Curva ajustada! 🚀"; setTimeout(() => aiStatus.classList.add('hidden'), 3000); }, 1500);
+    aiInput.value = ""; setTimeout(() => { aiStatus.textContent = currentLang === 'pt-br' ? "Curva ajustada! 🚀" : "Curve adjusted! 🚀"; setTimeout(() => aiStatus.classList.add('hidden'), 3000); }, 1500);
 }
 btnSendAi.addEventListener('click', () => sendAiCommand(aiInput.value.trim()));
 aiInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiCommand(aiInput.value.trim()); } });

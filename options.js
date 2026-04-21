@@ -1,112 +1,110 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. Lógica do Tema (Dark Mode) ---
-    const themeToggle = document.getElementById('theme-toggle');
-    chrome.storage.local.get(['theme'], (res) => {
-        if (res.theme === 'dark') document.body.classList.add('dark-mode');
-    });
-
-    if (themeToggle) {
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            chrome.storage.local.set({ theme: isDark ? 'dark' : 'light' });
-        });
+const dict = {
+    'pt-br': {
+        'options_title': 'Configurações - Audio AI Studio Pro',
+        'lang_settings': 'Idioma / Language',
+        'lang_desc': 'Selecione o idioma da interface (Aplica-se ao App e às Opções).',
+        'perm_settings': 'Permissões (Microfone)',
+        'step1_desc': 'Necessário para ler o áudio das abas, os dispositivos do PC e os comandos de Voz.',
+        'btn_grant_mic': 'Liberar Acesso',
+        'perm_success': 'Acesso Liberado! ✔️',
+        'api_settings': 'Chave API (Gemini)',
+        'api_desc': 'Insira sua chave de API do Google Gemini para ativar a Inteligência Artificial.',
+        'btn_save': 'Salvar Chave',
+        'saved_success': 'Salvo com sucesso!'
+    },
+    'en': {
+        'options_title': 'Settings - Audio AI Studio Pro',
+        'lang_settings': 'Language / Idioma',
+        'lang_desc': 'Select the interface language (Applies to the App and Options).',
+        'perm_settings': 'Permissions (Microphone)',
+        'step1_desc': 'Required to read audio from tabs, PC devices, and Voice commands.',
+        'btn_grant_mic': 'Grant Access',
+        'perm_success': 'Access Granted! ✔️',
+        'api_settings': 'API Key (Gemini)',
+        'api_desc': 'Enter your Google Gemini API key to enable Artificial Intelligence features.',
+        'btn_save': 'Save Key',
+        'saved_success': 'Saved successfully!'
     }
+};
 
-    // --- 2. Lógica do Microfone ---
-    const micIndicator = document.getElementById('mic-indicator');
-    const micStatusText = document.getElementById('mic-status-text');
-    const btnReqMic = document.getElementById('btn-req-mic');
+let currentLang = 'pt-br';
 
-    function updateMicUI(state) {
-        if (state === 'granted') {
-            micIndicator.textContent = '✔️';
-            micStatusText.textContent = 'Acesso Liberado';
-            micStatusText.style.color = '#10b981'; // Verde bonito
-            btnReqMic.classList.add('hidden'); // Esconde o botão se já tem acesso
-        } else {
-            micIndicator.textContent = '❌';
-            micStatusText.textContent = 'Acesso Bloqueado';
-            micStatusText.style.color = '#ef4444'; // Vermelho de aviso
-            btnReqMic.classList.remove('hidden');
-        }
-    }
-
-    // Verifica a permissão atual ao carregar a página
-    navigator.permissions.query({name: 'microphone'}).then((result) => {
-        updateMicUI(result.state);
-        // Ouve mudanças na permissão em tempo real
-        result.onchange = () => {
-            updateMicUI(result.state);
-        };
-    });
-
-    // Pede acesso ao microfone ao clicar
-    btnReqMic.addEventListener('click', async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            // Fecha o stream imediatamente, pois só queríamos a permissão
-            stream.getTracks().forEach(track => track.stop()); 
-            updateMicUI('granted');
-        } catch (err) {
-            alert("Não foi possível acessar o microfone. Por favor, verifique se o navegador está a bloquear o acesso na barra de endereço (ícone de cadeado/câmera).");
+function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[currentLang] && dict[currentLang][key]) {
+            if (el.tagName === 'INPUT' && el.type === 'button') {
+                el.value = dict[currentLang][key];
+            } else {
+                el.textContent = dict[currentLang][key];
+            }
         }
     });
+}
 
-    // --- 3. Lógica da API Gemini ---
-    const apiKeyInput = document.getElementById('api-key-input');
-    const toggleVisibilityBtn = document.getElementById('toggle-visibility');
-    const btnEdit = document.getElementById('btn-edit');
-    const btnCancel = document.getElementById('btn-cancel');
-    const btnSave = document.getElementById('btn-save');
-    const statusMsg = document.getElementById('status-msg');
-    const viewModeBtns = document.getElementById('view-mode-btns');
-    const editModeBtns = document.getElementById('edit-mode-btns');
+const langSelect = document.getElementById('lang-select');
+const btnGrantMic = document.getElementById('btn-grant-mic');
+const permStatus = document.getElementById('perm-status');
+const apiKeyInput = document.getElementById('api-key-input');
+const btnSaveApi = document.getElementById('btn-save-api');
+const apiStatus = document.getElementById('api-status');
+const themeToggle = document.getElementById('theme-toggle');
 
-    let savedKey = '';
+// Lógica de Tema Escuro/Claro
+chrome.storage.local.get(['theme'], (res) => {
+    if (res.theme === 'dark') document.body.classList.add('dark-mode');
+});
+themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    chrome.storage.local.set({ theme: document.body.classList.contains('dark-mode') ? 'dark' : 'light' });
+});
 
-    chrome.storage.local.get(['geminiApiKey'], (res) => {
-        if (res.geminiApiKey && res.geminiApiKey.trim() !== '') {
-            savedKey = res.geminiApiKey; apiKeyInput.value = savedKey; setMode('view');
-        } else { setMode('edit'); }
-    });
-
-    function setMode(mode) {
-        if (mode === 'view') {
-            apiKeyInput.disabled = true; apiKeyInput.type = 'password'; toggleVisibilityBtn.textContent = '👁️';
-            viewModeBtns.classList.remove('hidden'); editModeBtns.classList.add('hidden');
-        } else {
-            apiKeyInput.disabled = false; apiKeyInput.type = 'text'; toggleVisibilityBtn.textContent = '🙈';
-            apiKeyInput.focus(); viewModeBtns.classList.add('hidden'); editModeBtns.classList.remove('hidden');
-        }
+// Carregar Estado Inicial (Idioma e Chave API)
+chrome.storage.local.get(['language', 'geminiApiKey'], (res) => {
+    if (res.language) {
+        currentLang = res.language;
+        langSelect.value = currentLang;
     }
+    applyTranslations(); // Aplica imediatamente ao carregar a página
 
-    toggleVisibilityBtn.addEventListener('click', () => {
-        if (apiKeyInput.disabled) {
-            if (apiKeyInput.type === 'password') { apiKeyInput.type = 'text'; toggleVisibilityBtn.textContent = '🙈'; } 
-            else { apiKeyInput.type = 'password'; toggleVisibilityBtn.textContent = '👁️'; }
-        }
-    });
-
-    btnEdit.addEventListener('click', () => { setMode('edit'); });
-
-    btnCancel.addEventListener('click', () => {
-        apiKeyInput.value = savedKey; 
-        if (savedKey) { setMode('view'); } else { apiKeyInput.value = ''; }
-        statusMsg.classList.add('hidden');
-    });
-
-    btnSave.addEventListener('click', () => {
-        const newKey = apiKeyInput.value.trim();
-        chrome.storage.local.set({ geminiApiKey: newKey }, () => {
-            savedKey = newKey;
-            if (newKey === '') { showStatus('Chave removida. A IA foi desativada.', '#ef4444'); } 
-            else { showStatus('Chave API guardada com sucesso! A IA está pronta.', 'var(--text-main)'); setMode('view'); }
-        });
-    });
-
-    function showStatus(text, color) {
-        statusMsg.textContent = text; statusMsg.style.color = color; statusMsg.classList.remove('hidden');
-        setTimeout(() => { statusMsg.classList.add('hidden'); }, 3500);
+    if (res.geminiApiKey) {
+        apiKeyInput.value = res.geminiApiKey;
     }
+});
+
+// Evento de Mudança de Idioma (Salva para o Popup ler depois)
+langSelect.addEventListener('change', (e) => {
+    currentLang = e.target.value;
+    chrome.storage.local.set({ language: currentLang }, () => {
+        applyTranslations();
+    });
+});
+
+// Verificação Automática de Permissão do Microfone
+navigator.permissions.query({name: 'microphone'}).then((result) => {
+    if (result.state === 'granted') {
+        btnGrantMic.classList.add('hidden');
+        permStatus.classList.remove('hidden');
+    }
+});
+
+// Pedir Permissão
+btnGrantMic.addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop()); 
+        btnGrantMic.classList.add('hidden');
+        permStatus.classList.remove('hidden');
+    } catch (err) {
+        alert(currentLang === 'pt-br' ? "Permissão negada pelas configurações do navegador." : "Permission denied by browser settings.");
+    }
+});
+
+// Salvar API Key
+btnSaveApi.addEventListener('click', () => {
+    const newKey = apiKeyInput.value.trim();
+    chrome.storage.local.set({ geminiApiKey: newKey }, () => {
+        apiStatus.classList.remove('hidden');
+        setTimeout(() => apiStatus.classList.add('hidden'), 3000);
+    });
 });

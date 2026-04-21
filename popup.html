@@ -10,32 +10,32 @@
     <div id="permission-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; overflow-y: auto; backdrop-filter: blur(8px);">
         <div style="background: var(--neu-bg); padding: 25px 20px; border-radius: 15px; box-shadow: 10px 10px 20px rgba(0,0,0,0.3); width: 100%; max-width: 340px;">
             <div style="font-size: 2.5rem; margin-bottom: 5px;">👋</div>
-            <h2 style="margin-bottom: 20px; color: var(--text-main); font-size: 1.3rem;">Bem-vindo ao Studio!</h2>
+            <h2 style="margin-bottom: 20px; color: var(--text-main); font-size: 1.3rem;" data-i18n="welcome">Bem-vindo ao Studio!</h2>
             
             <div style="background: transparent; padding: 15px; border-radius: 12px; box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light); margin-bottom: 15px; text-align: left;">
-                <p style="font-size: 0.85rem; color: var(--text-main); font-weight: bold; margin-bottom: 5px;">1. Microfone & Saídas 🎙️</p>
-                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px;">Necessário para ler o áudio das abas, os dispositivos do PC e os comandos de Voz.</p>
-                <button id="btn-grant-mic" class="btn-primary" style="width: 100%; padding: 8px; font-size: 0.8rem;">Liberar Acesso</button>
-                <p id="perm-success-mic" class="hidden" style="color: #10b981; font-size: 0.75rem; font-weight: bold; text-align: center; margin-top: 8px;">Acesso Liberado! ✔️</p>
+                <p style="font-size: 0.85rem; color: var(--text-main); font-weight: bold; margin-bottom: 5px;" data-i18n="step1_title">1. Microfone & Saídas 🎙️</p>
+                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px;" data-i18n="step1_desc">Necessário para ler o áudio das abas, os dispositivos do PC e os comandos de Voz.</p>
+                <button id="btn-grant-mic" class="btn-primary" style="width: 100%; padding: 8px; font-size: 0.8rem;" data-i18n="btn_grant">Liberar Acesso</button>
+                <p id="perm-success-mic" class="hidden" style="color: #10b981; font-size: 0.75rem; font-weight: bold; text-align: center; margin-top: 8px;" data-i18n="perm_ok">Acesso Liberado! ✔️</p>
             </div>
 
             <div style="background: transparent; padding: 15px; border-radius: 12px; box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light); margin-bottom: 20px; text-align: left;">
-                <p style="font-size: 0.85rem; color: var(--text-main); font-weight: bold; margin-bottom: 5px;">2. Chave API Gemini 🤖 <span style="font-weight: normal; font-size: 0.7rem;">(Opcional)</span></p>
-                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">Sem ela a IA fica desativada. Pode preencher agora ou depois em Opções.</p>
+                <p style="font-size: 0.85rem; color: var(--text-main); font-weight: bold; margin-bottom: 5px;" data-i18n="step2_title">2. Chave API Gemini 🤖 <span style="font-weight: normal; font-size: 0.7rem;">(Opcional)</span></p>
+                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;" data-i18n="step2_desc">Sem ela a IA fica desativada. Pode preencher agora ou depois em Opções.</p>
                 <input type="password" id="setup-api-key" placeholder="AIzaSy..." style="width: 100%; padding: 8px; font-family: monospace; font-size: 0.75rem; margin-bottom: 10px;">
-                <button id="btn-save-setup-api" class="metal-button" style="width: 100%; padding: 8px; font-size: 0.8rem;">Aplicar API</button>
+                <button id="btn-save-setup-api" class="metal-button" style="width: 100%; padding: 8px; font-size: 0.8rem;" data-i18n="btn_apply_api">Aplicar API</button>
             </div>
 
-            <button id="btn-finish-setup" class="btn-white" style="width: 100%; padding: 12px; font-size: 0.9rem;" disabled>Concluir Setup</button>
+            <button id="btn-finish-setup" class="btn-white" style="width: 100%; padding: 12px; font-size: 0.9rem;" disabled data-i18n="btn_finish">Concluir Setup</button>
         </div>
     </div>
 
     <div id="modal-overlay" class="hidden">
         <div class="modal-content">
-            <div class="modal-header" id="modal-title">Gerenciar Presets</div>
+            <div class="modal-header" id="modal-title" data-i18n="modal_manage">Gerenciar Presets</div>
             <div id="modal-list"></div>
             <div class="flex-row" style="margin-bottom: 0;">
-                <button id="btn-modal-close" class="btn-primary metal-button">Concluir</button>
+                <button id="btn-modal-close" class="btn-primary metal-button" data-i18n="btn_done">Concluir</button>
             </div>
         </div>
     </div>
@@ -44,32 +44,32 @@
         <div class="modal-content" style="max-width: 320px; padding: 25px;">
             <div class="modal-header" style="display:flex; align-items:center; gap:8px; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 15px; margin-bottom: 15px;">
                 <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                Guia Rápido
+                <span data-i18n="info_guide">Guia Rápido</span>
             </div>
             
             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; font-size: 0.85rem; color: var(--text-main);">
                 <div style="display: flex; gap: 12px; align-items: flex-start; background: transparent; padding: 10px; border-radius: 10px; box-shadow: inset 2px 2px 5px var(--neu-dark), inset -2px -2px 5px var(--neu-light);">
                     <span style="font-size: 1.2rem; filter: grayscale(100%);">🖱️</span>
-                    <div><strong>Criar Ponto:</strong><br><span style="color: var(--text-muted); font-size: 0.75rem;">Dê 2 cliques na área do gráfico.</span></div>
+                    <div><strong data-i18n="info_create">Criar Ponto:</strong><br><span style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="info_create_desc">Dê 2 cliques na área do gráfico.</span></div>
                 </div>
                 
                 <div style="display: flex; gap: 12px; align-items: flex-start; background: transparent; padding: 10px; border-radius: 10px; box-shadow: inset 2px 2px 5px var(--neu-dark), inset -2px -2px 5px var(--neu-light);">
                     <span style="font-size: 1.2rem; filter: grayscale(100%);">🗑️</span>
-                    <div><strong>Apagar Ponto:</strong><br><span style="color: var(--text-muted); font-size: 0.75rem;">Botão direito ou tecla [Delete].</span></div>
+                    <div><strong data-i18n="info_del">Apagar Ponto:</strong><br><span style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="info_del_desc">Botão direito ou tecla [Delete].</span></div>
                 </div>
 
                 <div style="display: flex; gap: 12px; align-items: flex-start; background: transparent; padding: 10px; border-radius: 10px; box-shadow: inset 2px 2px 5px var(--neu-dark), inset -2px -2px 5px var(--neu-light);">
                     <span style="font-size: 1.2rem; filter: grayscale(100%);">↕️</span>
-                    <div><strong>Ajustar Curva (Q):</strong><br><span style="color: var(--text-muted); font-size: 0.75rem;">Com o mouse sobre um ponto, use o scroll (rodinha) para alargar ou estreitar a curva de frequência.</span></div>
+                    <div><strong data-i18n="info_q">Ajustar Curva (Q):</strong><br><span style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="info_q_desc">Com o mouse sobre um ponto, use o scroll (rodinha) para alargar ou estreitar a curva de frequência.</span></div>
                 </div>
                 
                 <div style="display: flex; gap: 12px; align-items: flex-start; background: transparent; padding: 10px; border-radius: 10px; box-shadow: inset 2px 2px 5px var(--neu-dark), inset -2px -2px 5px var(--neu-light);">
                     <span style="font-size: 1.2rem; filter: grayscale(100%);">🎚️</span>
-                    <div><strong>Modo Sliders:</strong><br><span style="color: var(--text-muted); font-size: 0.75rem;">Use o botão de válvulas. Passe o mouse e use o scroll sobre os sliders.</span></div>
+                    <div><strong data-i18n="info_slider">Modo Sliders:</strong><br><span style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="info_slider_desc">Use o botão de válvulas. Passe o mouse e use o scroll sobre os sliders.</span></div>
                 </div>
             </div>
             
-            <button id="btn-close-info" class="metal-button" style="width: 100%; padding: 10px;">Entendi</button>
+            <button id="btn-close-info" class="metal-button" style="width: 100%; padding: 10px;" data-i18n="btn_understood">Entendi</button>
         </div>
     </div>
 
@@ -88,7 +88,7 @@
         
         <div style="width: 55px; display: flex; justify-content: flex-end;">
             <button id="btn-miniplayer" style="background: none; border: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); transition: color 0.2s, transform 0.1s;" title="Abrir Mini-Player">
-                <span style="font-size: 0.45rem; font-weight: 700; font-family: 'Segoe UI', sans-serif; letter-spacing: 0.5px; margin-bottom: 3px;">MINI-PLAYER</span>
+                <span style="font-size: 0.45rem; font-weight: 700; font-family: 'Segoe UI', sans-serif; letter-spacing: 0.5px; margin-bottom: 3px;" data-i18n="miniplayer">MINI-PLAYER</span>
                 <svg width="22" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.052-.072 1.964l-.008.106-.022.26-.01.103c-.048.52-.119 1.023-.22 1.402a2.01 2.01 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.171-.007c-1.11-.049-2.167-.128-2.654-.26a2.01 2.01 0 0 1-1.415-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31.4 31.4 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.003-.052.008-.104.022-.26.01-.104c.048-.519.119-1.023.22 1.402a2.01 2.01 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.172-.006.086-.003.171-.007A99.788 99.788 0 0 1 7.858 2h.193zM6.4 5.209v4.818l4.157-2.408L6.4 5.209z"/></svg>
             </button>
         </div>
@@ -96,7 +96,7 @@
 
     <div style="margin-bottom: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <label style="margin-bottom: 0;">Favoritos</label>
+            <label style="margin-bottom: 0;" data-i18n="favs">Favoritos</label>
             <div style="display: flex; gap: 8px; align-items: center;">
                 <button id="btn-undo" class="btn-icon" style="padding: 4px 8px;" disabled>
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/></svg>
@@ -149,7 +149,7 @@
             </div>
             
             <div id="view-sliders" class="hidden sliders-container" style="display: none;">
-                </div>
+            </div>
         </div>
     </div>
 
@@ -164,7 +164,7 @@
         </div>
 
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-            <label style="margin-bottom: 4px;">Preset</label>
+            <label style="margin-bottom: 4px;" data-i18n="preset">Preset</label>
             <div class="custom-select-container">
                 <div id="preset-trigger" class="custom-select-trigger metal-select">
                     <span id="preset-trigger-text">Padrão (Flat)</span>
@@ -183,26 +183,26 @@
                     </div>
                 </div>
                 <input type="file" id="file-input" accept=".json" class="hidden">
-                <button id="btn-upload" class="metal-button" style="flex: 1.2; padding: 6px 2px; font-size: 0.7rem;" title="Subir Arquivo">↑ Subir</button>
-                <button id="btn-download" class="metal-button" style="flex: 1.2; padding: 6px 2px; font-size: 0.7rem;" title="Download Preset">↓ Down</button>
-                <button id="btn-show-save" class="metal-button" style="flex: 1.5; padding: 6px 2px; font-size: 0.7rem;">Salvar +</button>
+                <button id="btn-upload" class="metal-button" style="flex: 1.2; padding: 6px 2px; font-size: 0.7rem;" title="Subir Arquivo" data-i18n="btn_upload">↑ Subir</button>
+                <button id="btn-download" class="metal-button" style="flex: 1.2; padding: 6px 2px; font-size: 0.7rem;" title="Download Preset" data-i18n="btn_down">↓ Down</button>
+                <button id="btn-show-save" class="metal-button" style="flex: 1.5; padding: 6px 2px; font-size: 0.7rem;" data-i18n="btn_save_plus">Salvar +</button>
             </div>
         </div>
     </div>
 
     <div id="save-preset-container" class="hidden">
-        <label for="new-preset-name">Nome do novo Preset</label>
+        <label for="new-preset-name" data-i18n="new_preset">Nome do novo Preset</label>
         <div style="display: flex; gap: 8px;">
             <input type="text" id="new-preset-name" placeholder="Ex: Master Bass">
-            <button id="btn-save-preset" class="metal-button" style="flex: none; width: 50px; padding: 8px;">OK</button>
+            <button id="btn-save-preset" class="metal-button" style="flex: none; width: 50px; padding: 8px;" data-i18n="btn_ok">OK</button>
         </div>
     </div>
 
     <div style="margin-bottom: 15px; background: transparent; padding: 5px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <label style="margin-bottom: 0; font-size: 0.85rem; color: var(--text-main);">DUAL OUTPUT ROUTING</label>
+            <label style="margin-bottom: 0; font-size: 0.85rem; color: var(--text-main);" data-i18n="routing">DUAL OUTPUT ROUTING</label>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Duplicar saída</span>
+                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;" data-i18n="dup_out">Duplicar saída</span>
                 <label class="switch"><input type="checkbox" id="duplicate-output-switch"><span class="slider"></span></label>
             </div>
         </div>
@@ -210,7 +210,7 @@
         <div id="routing-cards-container" style="display: flex; gap: 10px; width: 100%;">
             <div class="routing-card" id="card-output-1">
                 <div class="routing-card-header">
-                    <label class="routing-card-title">OUTPUT 1</label>
+                    <label class="routing-card-title" data-i18n="out1">OUTPUT 1</label>
                     <select id="output-select" class="routing-select metal-select" style="margin-top: 5px;">
                         <option value="">Padrão do Sistema</option>
                     </select>
@@ -232,7 +232,7 @@
 
             <div class="routing-card hidden" id="card-output-2">
                 <div class="routing-card-header">
-                    <label class="routing-card-title">OUTPUT 2</label>
+                    <label class="routing-card-title" data-i18n="out2">OUTPUT 2</label>
                     <select id="output-select-2" class="routing-select metal-select" style="margin-top: 5px;">
                         <option value="">Nenhuma</option>
                     </select>
@@ -259,9 +259,9 @@
     <div>
         <div id="ai-active-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <label for="ai-input" style="margin-bottom: 0;">Comando com IA ou Voz</label>
+                <label for="ai-input" style="margin-bottom: 0;" data-i18n="ai_cmd">Comando com IA ou Voz</label>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Nova curva</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;" data-i18n="new_curve">Nova curva</span>
                     <label class="switch"><input type="checkbox" id="ai-new-curve-switch"><span class="slider"></span></label>
                 </div>
             </div>
@@ -274,15 +274,15 @@
                 </button>
             </div>
             <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
-                <button id="btn-send-ai" class="metal-button">Ajustar com IA</button>
+                <button id="btn-send-ai" class="metal-button" data-i18n="btn_ai">Ajustar com IA</button>
                 <span id="ai-status" class="status-text hidden" style="color: var(--text-muted);">Processando...</span>
                 <span id="mic-status" class="status-text hidden" style="color: var(--text-muted); font-weight: bold;">Ouvindo...</span>
             </div>
         </div>
 
         <div id="ai-warning-section" class="hidden" style="background: transparent; padding: 15px; border-radius: 12px; text-align: center; box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);">
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; font-weight: 600;">🤖 A Inteligência Artificial está adormecida.</p>
-            <button id="btn-open-options" class="metal-button" style="font-size: 0.75rem; padding: 8px 15px;">Aplicar Chave da API</button>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; font-weight: 600;" data-i18n="ai_sleep">🤖 A Inteligência Artificial está adormecida.</p>
+            <button id="btn-open-options" class="metal-button" style="font-size: 0.75rem; padding: 8px 15px;" data-i18n="apply_key">Aplicar Chave da API</button>
         </div>
     </div>
 
