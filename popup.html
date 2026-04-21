@@ -194,6 +194,7 @@
         <label for="new-preset-name" data-i18n="new_preset">Nome do novo Preset</label>
         <div style="display: flex; gap: 8px;">
             <input type="text" id="new-preset-name" placeholder="Ex: Master Bass">
+            <button id="btn-cancel-preset" class="metal-button" style="flex: none; width: 40px; padding: 8px; color: #ef4444; font-weight: 900;" title="Cancelar">X</button>
             <button id="btn-save-preset" class="metal-button" style="flex: none; width: 50px; padding: 8px;" data-i18n="btn_ok">OK</button>
         </div>
     </div>
@@ -266,7 +267,7 @@
                 </div>
             </div>
             <div class="input-mic-container">
-                <textarea id="ai-input" rows="1" placeholder="Ex: Deixe os graves mais fortes..."></textarea>
+                <textarea id="ai-input" rows="1" data-i18n-placeholder="ai_placeholder" placeholder="Ex: Deixe os graves mais fortes..."></textarea>
                 <button id="btn-mic" class="btn-mic" title="Falar comando">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />

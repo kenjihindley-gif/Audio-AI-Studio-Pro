@@ -10,7 +10,8 @@ const i18nDict = {
         miniplayer: "MINI-PLAYER", favs: "Favoritos", preset: "Preset", btn_upload: "↑ Subir", btn_down: "↓ Down", btn_save_plus: "Salvar +",
         new_preset: "Nome do novo Preset", btn_ok: "OK", routing: "DUAL OUTPUT ROUTING", dup_out: "Duplicar saída", out1: "OUTPUT 1", out2: "OUTPUT 2",
         ai_cmd: "Comando com IA ou Voz", new_curve: "Nova curva", btn_ai: "Ajustar com IA", ai_sleep: "🤖 A Inteligência Artificial está adormecida.", apply_key: "Aplicar Chave da API",
-        preset_flat: "Padrão (Flat)", system_default: "Padrão do Sistema", none_out: "Nenhuma", menu_move: "Mover (Ordem)", menu_edit: "Editar Nomes", menu_del: "Excluir Presets"
+        preset_flat: "Padrão (Flat)", system_default: "Padrão do Sistema", none_out: "Nenhuma", menu_move: "Mover (Ordem)", menu_edit: "Editar Nomes", menu_del: "Excluir Presets",
+        ai_placeholder: "Ex: Deixe os graves mais fortes..."
     },
     'en': {
         welcome: "Welcome to Studio!", step1_title: "1. Mic & Outputs 🎙️", step1_desc: "Required to read audio from tabs, PC devices, and Voice commands.",
@@ -22,7 +23,8 @@ const i18nDict = {
         miniplayer: "MINI-PLAYER", favs: "Favorites", preset: "Preset", btn_upload: "↑ Upload", btn_down: "↓ Down", btn_save_plus: "Save +",
         new_preset: "New Preset Name", btn_ok: "OK", routing: "DUAL OUTPUT ROUTING", dup_out: "Duplicate output", out1: "OUTPUT 1", out2: "OUTPUT 2",
         ai_cmd: "AI or Voice Command", new_curve: "New curve", btn_ai: "Adjust with AI", ai_sleep: "🤖 Artificial Intelligence is asleep.", apply_key: "Apply API Key",
-        preset_flat: "Default (Flat)", system_default: "System Default", none_out: "None", menu_move: "Move (Order)", menu_edit: "Edit Names", menu_del: "Delete Presets"
+        preset_flat: "Default (Flat)", system_default: "System Default", none_out: "None", menu_move: "Move (Order)", menu_edit: "Edit Names", menu_del: "Delete Presets",
+        ai_placeholder: "Ex: Make the bass stronger..."
     }
 };
 
@@ -33,6 +35,13 @@ function applyTranslations() {
         const key = el.getAttribute('data-i18n');
         if (i18nDict[currentLang] && i18nDict[currentLang][key]) {
             el.innerHTML = i18nDict[currentLang][key];
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (i18nDict[currentLang] && i18nDict[currentLang][key]) {
+            el.placeholder = i18nDict[currentLang][key];
         }
     });
     
@@ -57,6 +66,42 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
         applyTranslations();
     }
 });
+
+// --- Lógica de Auto-Nomeação de Presets Modificados ---
+let isModified = false;
+let tempPresetName = "";
+
+function markAsModified() {
+    if (isModified) return;
+    isModified = true;
+    
+    let base = currentSelectedPresetKey;
+    if (base === 'Temp_Custom') return; 
+    if (base.startsWith('custom_')) base = base.replace('custom_', '');
+    
+    let suffix = currentLang === 'en' ? 'Custom' : 'Personalizado';
+    let proposedName = "";
+    
+    let cleanBase = base.replace(new RegExp(`\\s*-\\s*(Personalizado|Custom)(\\s\\d+)?$`), '');
+    
+    if (cleanBase === 'Padrao' || cleanBase === '') {
+        proposedName = suffix;
+    } else {
+        proposedName = `${cleanBase} - ${suffix}`;
+    }
+
+    getStorageData((custom, order, favs) => {
+        let finalName = proposedName;
+        let count = 1;
+        while (custom[finalName] || defaultPresets[finalName]) {
+             finalName = `${proposedName} ${count}`;
+             count++;
+        }
+        tempPresetName = finalName;
+        currentSelectedPresetKey = 'Temp_Custom';
+        updateTriggerText();
+    });
+}
 
 // --- Lógica de Tema (Dark/Light Mode) ---
 const themeToggle = document.getElementById('theme-toggle');
@@ -164,6 +209,7 @@ const btnShowSave = document.getElementById('btn-show-save');
 const saveContainer = document.getElementById('save-preset-container');
 const newPresetName = document.getElementById('new-preset-name');
 const btnSavePreset = document.getElementById('btn-save-preset');
+const btnCancelPreset = document.getElementById('btn-cancel-preset');
 const btnUpload = document.getElementById('btn-upload');
 const fileInput = document.getElementById('file-input');
 const btnDownload = document.getElementById('btn-download');
@@ -231,17 +277,8 @@ if (btnMiniplayer) {
     });
 }
 
-// Lógica Novo Modal de Informações
-if (btnInfo) {
-    btnInfo.addEventListener('click', () => {
-        infoModalOverlay.classList.remove('hidden');
-    });
-}
-if (btnCloseInfo) {
-    btnCloseInfo.addEventListener('click', () => {
-        infoModalOverlay.classList.add('hidden');
-    });
-}
+if (btnInfo) { btnInfo.addEventListener('click', () => { infoModalOverlay.classList.remove('hidden'); }); }
+if (btnCloseInfo) { btnCloseInfo.addEventListener('click', () => { infoModalOverlay.classList.add('hidden'); }); }
 
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0] && !tabs[0].url.startsWith('chrome://')) {
@@ -277,8 +314,8 @@ function saveHistoryState(pointsToSave) {
     updateHistoryButtons();
 }
 
-function doUndo() { if (historyIndex > 0) { historyIndex--; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); } }
-function doRedo() { if (historyIndex < eqHistory.length - 1) { historyIndex++; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); } }
+function doUndo() { if (historyIndex > 0) { historyIndex--; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); } }
+function doRedo() { if (historyIndex < eqHistory.length - 1) { historyIndex++; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); } }
 btnUndo.addEventListener('click', doUndo); btnRedo.addEventListener('click', doRedo);
 
 // --- Equalizador Visual (Sliders & Toggle UI) ---
@@ -341,6 +378,7 @@ function handleSliderChange(freq, value) {
         }
     }
     sendPointsToEngine();
+    markAsModified();
 }
 
 if (btnToggleView) {
@@ -418,6 +456,7 @@ function toggleFavorite(key, favs, custom, order) {
 function selectPresetFromDropdown(key) { presetOptions.classList.remove('open'); applyPreset(key); renderUI(); }
 
 function applyPreset(key) {
+    isModified = false; tempPresetName = "";
     currentSelectedPresetKey = key; selectedPointIndex = -1;
     if (currentTabId !== null) chrome.storage.local.set({ [`preset_${currentTabId}`]: key });
     if (key.startsWith('custom_')) {
@@ -429,6 +468,10 @@ function applyPreset(key) {
 }
 
 function updateTriggerText() { 
+    if (currentSelectedPresetKey === 'Temp_Custom') {
+        presetTriggerText.textContent = tempPresetName;
+        return;
+    }
     let name = currentSelectedPresetKey; 
     if (name.startsWith('custom_')) name = name.replace('custom_', ''); 
     if (name === 'Padrao' && i18nDict[currentLang]) name = i18nDict[currentLang].preset_flat;
@@ -574,13 +617,13 @@ function sendPointsToEngine(force = false) {
 canvas.addEventListener('dblclick', (e) => {
     if (eqPoints.length >= MAX_POINTS) return; const pos = getXY(e); if (pos.y > canvas.height - 20) return;
     eqPoints.push({ f: xToFreq(pos.x), g: yToGain(pos.y), q: 1.2 }); selectedPointIndex = eqPoints.length - 1; 
-    sendPointsToEngine(true); saveHistoryState(eqPoints); 
+    sendPointsToEngine(true); saveHistoryState(eqPoints); markAsModified();
 });
 
 canvas.addEventListener('mousedown', (e) => { if (hoveredPointIndex !== -1) { isDragging = true; draggedPointIndex = hoveredPointIndex; selectedPointIndex = hoveredPointIndex; } else { selectedPointIndex = -1; } });
 canvas.addEventListener('mousemove', (e) => {
     const pos = getXY(e);
-    if (isDragging && draggedPointIndex !== -1) { eqPoints[draggedPointIndex].f = Math.max(minFreq, Math.min(maxFreq, xToFreq(pos.x))); eqPoints[draggedPointIndex].g = yToGain(pos.y); sendPointsToEngine(); } 
+    if (isDragging && draggedPointIndex !== -1) { eqPoints[draggedPointIndex].f = Math.max(minFreq, Math.min(maxFreq, xToFreq(pos.x))); eqPoints[draggedPointIndex].g = yToGain(pos.y); sendPointsToEngine(); markAsModified(); } 
     else {
         hoveredPointIndex = -1;
         for (let i = 0; i < eqPoints.length; i++) {
@@ -596,7 +639,7 @@ let wheelTimeout;
 canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     if (hoveredPointIndex !== -1) { 
-        eqPoints[hoveredPointIndex].q = Math.max(0.1, Math.min(10, eqPoints[hoveredPointIndex].q + (e.deltaY > 0 ? -0.2 : 0.2))); sendPointsToEngine(true); 
+        eqPoints[hoveredPointIndex].q = Math.max(0.1, Math.min(10, eqPoints[hoveredPointIndex].q + (e.deltaY > 0 ? -0.2 : 0.2))); sendPointsToEngine(true); markAsModified();
         clearTimeout(wheelTimeout); wheelTimeout = setTimeout(() => saveHistoryState(eqPoints), 500);
     }
 }, { passive: false });
@@ -608,11 +651,11 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedPointIndex !== -1 && selectedPointIndex < eqPoints.length) {
             eqPoints.splice(selectedPointIndex, 1); selectedPointIndex = -1; hoveredPointIndex = -1; 
-            sendPointsToEngine(true); saveHistoryState(eqPoints); 
+            sendPointsToEngine(true); saveHistoryState(eqPoints); markAsModified();
         }
     }
 });
-canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); if (hoveredPointIndex !== -1) { eqPoints.splice(hoveredPointIndex, 1); hoveredPointIndex = -1; selectedPointIndex = -1; sendPointsToEngine(true); saveHistoryState(eqPoints); } });
+canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); if (hoveredPointIndex !== -1) { eqPoints.splice(hoveredPointIndex, 1); hoveredPointIndex = -1; selectedPointIndex = -1; sendPointsToEngine(true); saveHistoryState(eqPoints); markAsModified(); } });
 
 let currentDBResponse = [], currentBoosterDB = 0; let currentSpectrum = []; let currentSampleRate = 48000;
 
@@ -693,9 +736,19 @@ function animationLoop() {
                     if (currentSpectrum[i] > peak) peak = currentSpectrum[i];
                 }
                 
-                let targetPercent = (peak / 255) * 100;
+                // NOVO: Cálculo Dinâmico com Attack/Release Suave para melhor percepção de graves (potência 0.7)
+                let normalizedPeak = peak / 255;
+                let targetPercent = Math.pow(normalizedPeak, 0.7) * 100;
+                
                 if (!window.dbMeterPercent) window.dbMeterPercent = 0;
-                window.dbMeterPercent = window.dbMeterPercent * 0.8 + targetPercent * 0.2; 
+                
+                if (targetPercent > window.dbMeterPercent) {
+                    // Attack Rápido: Sobe mais ágil
+                    window.dbMeterPercent = window.dbMeterPercent * 0.4 + targetPercent * 0.6; 
+                } else {
+                    // Release Suave: Desce de forma fluída
+                    window.dbMeterPercent = window.dbMeterPercent * 0.85 + targetPercent * 0.15; 
+                }
                 
                 if (dbMeterFill) dbMeterFill.style.height = `${window.dbMeterPercent}%`;
 
@@ -729,7 +782,11 @@ chrome.runtime.onMessage.addListener((message) => {
         const vol = message.boosterVolume || 100; setKnobValue(vol);
         
         chrome.storage.local.get([`preset_${currentTabId}`], (res) => {
-            if (res[`preset_${currentTabId}`]) { currentSelectedPresetKey = res[`preset_${currentTabId}`]; updateTriggerText(); renderUI(); }
+            if (res[`preset_${currentTabId}`]) { 
+                currentSelectedPresetKey = res[`preset_${currentTabId}`]; 
+                isModified = false; tempPresetName = "";
+                updateTriggerText(); renderUI(); 
+            }
         });
         
         if (message.routing) {
@@ -773,12 +830,32 @@ function handleKnobDrag(e) {
 boosterKnob.addEventListener('mousedown', (e) => { isKnobDragging = true; handleKnobDrag(e); });
 document.addEventListener('mousemove', handleKnobDrag); document.addEventListener('mouseup', () => { isKnobDragging = false; });
 
-btnShowSave.addEventListener('click', () => { saveContainer.classList.toggle('hidden'); newPresetName.focus(); });
+btnShowSave.addEventListener('click', () => { 
+    saveContainer.classList.toggle('hidden'); 
+    if (!saveContainer.classList.contains('hidden')) {
+        if (isModified && tempPresetName) newPresetName.value = tempPresetName;
+        newPresetName.focus(); 
+    }
+});
+
+// Ação do Novo Botão Cancelar
+if (btnCancelPreset) {
+    btnCancelPreset.addEventListener('click', () => {
+        saveContainer.classList.add('hidden');
+        newPresetName.value = '';
+    });
+}
+
 btnSavePreset.addEventListener('click', () => {
     const name = newPresetName.value.trim(); if (!name) return;
     getStorageData((custom, order, favs) => {
         custom[name] = { points: eqPoints, type: 'created' }; if(!order.includes(name)) order.push(name);
-        saveStorageData(custom, order, favs, () => { newPresetName.value = ''; saveContainer.classList.add('hidden'); currentSelectedPresetKey = `custom_${name}`; renderUI(); });
+        saveStorageData(custom, order, favs, () => { 
+            newPresetName.value = ''; saveContainer.classList.add('hidden'); 
+            currentSelectedPresetKey = `custom_${name}`; 
+            isModified = false; tempPresetName = "";
+            renderUI(); 
+        });
     });
 });
 
@@ -813,7 +890,7 @@ function sendAiCommand(promptText) {
     aiStatus.textContent = currentLang === 'pt-br' ? "A IA está pensando... 🤔" : "AI is thinking... 🤔"; 
     aiStatus.classList.remove('hidden'); aiInput.style.height = 'auto';
     const isNewCurve = aiNewCurveSwitch.checked; const pointsToSend = isNewCurve ? [] : eqPoints; 
-    sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => { setTimeout(() => { sendToEngine({ action: 'request_graph_update' }); window.justGotAIPoints = true; }, 1000); });
+    sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => { setTimeout(() => { sendToEngine({ action: 'request_graph_update' }); window.justGotAIPoints = true; markAsModified(); }, 1000); });
     aiInput.value = ""; setTimeout(() => { aiStatus.textContent = currentLang === 'pt-br' ? "Curva ajustada! 🚀" : "Curve adjusted! 🚀"; setTimeout(() => aiStatus.classList.add('hidden'), 3000); }, 1500);
 }
 btnSendAi.addEventListener('click', () => sendAiCommand(aiInput.value.trim()));

@@ -73,10 +73,13 @@ canvas#eqGraph { background: transparent; border: none; display: block; width: 1
 
 /* --- Equalizador Visual (Sliders e dB Meter) --- */
 .db-meter {
-    width: 14px; height: 130px; background: var(--neu-bg); border-radius: 6px;
+    width: 14px; 
+    height: calc(100% - 20px); /* Altura dinâmica: 100% da área menos o espaço das legendas de frequência */
+    background: var(--neu-bg); border-radius: 6px;
     box-shadow: inset 3px 3px 5px var(--neu-dark), inset -3px -3px 5px var(--neu-light);
     display: flex; flex-direction: column; align-items: center;
-    padding: 4px 2px 2px 2px; margin-top: 10px;
+    padding: 4px 2px 2px 2px;
+    transition: height 0.3s ease; /* Acompanha a animação de expansão suavemente */
 }
 
 .db-meter-clip {
@@ -94,8 +97,8 @@ body.dark-mode .db-meter-clip { background-color: #2a0000; }
 }
 body.dark-mode .db-meter-fill { background: linear-gradient(to top, #374151 0%, #6b7280 60%, #9ca3af 100%); }
 
-.sliders-container { flex: 1; display: flex; justify-content: space-between; align-items: flex-end; height: 150px; padding-bottom: 5px; padding-left: 10px; }
-.slider-wrapper { position: relative; width: 20px; height: 150px; display: flex; flex-direction: column; align-items: center; }
+.sliders-container { flex: 1; display: flex; justify-content: space-between; align-items: flex-end; height: 100%; padding-bottom: 5px; padding-left: 10px; }
+.slider-wrapper { position: relative; width: 20px; height: 100%; display: flex; flex-direction: column; align-items: center; }
 .vertical-slider {
     -webkit-appearance: none; width: 110px; height: 6px; background: var(--neu-bg);
     box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--neu-light);
