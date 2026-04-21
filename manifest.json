@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Audio AI Studio Pro",
-  "version": "7.37.25",
+  "version": "7.37.26",
   "permissions": [
     "offscreen", 
     "storage", 

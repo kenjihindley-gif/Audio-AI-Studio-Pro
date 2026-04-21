@@ -48,7 +48,7 @@ function captureTab(tabId) {
     });
 }
 
-// --- O CÉREBRO DA IA (Com Multiplicadores de Intensidade e Termos Comportamentais) ---
+// --- O CÉREBRO DA IA (Correção de Verbos de Redução) ---
 async function processPromptWithGemini(userPrompt, currentPoints, isNewCurve) {
     const data = await chrome.storage.local.get(['geminiApiKey']);
     const GEMINI_API_KEY = data.geminiApiKey;
@@ -65,13 +65,13 @@ async function processPromptWithGemini(userPrompt, currentPoints, isNewCurve) {
 GUIA DE INTERPRETAÇÃO DE FREQUÊNCIAS E SINÔNIMOS (Cheat Sheet):
 - GRAVES (20Hz a 250Hz): grave, gordo, peso, sub, tremor, profundo, cheio, quente, boom, embolado, sujo, turvo, lama, encorpado, massivo, boomy, muddy, grosso, inchado, pancada, soco, kick.
 - MÉDIOS GRAVES (250Hz a 500Hz): papelão, caixa, boxy, nasal baixo, oco, fechado, madeira, veludo, opaco, sem vida, som de quarto, lama média, fofo.
-- MÉDIOS (500Hz a 2000Hz): médio, nasal, telefone, megafone, buzina, honky, lata, plástico, rádio antigo, fanho, duro, na cara, mordida. (ATENÇÃO: Se o usuário disser que a voz está "FRACA" ou "SUMIDA", você deve AUMENTAR aqui para dar projeção).
+- MÉDIOS (500Hz a 2000Hz): médio, medio, nasal, telefone, megafone, buzina, honky, lata, plástico, rádio antigo, fanho, duro, na cara, mordida. (ATENÇÃO: Se o usuário disser que a voz está "FRACA" ou "SUMIDA", você deve AUMENTAR aqui para dar projeção).
 - MÉDIOS AGUDOS (2000Hz a 5000Hz): estridente, ardido, cortante, agressivo, presença, irritante, rasgado, pontudo, metálico, afiado, perfurante, harsh, fadiga, cansaço auditivo, clareza, definição, estalo, voz muito aguda. (ATENÇÃO: Se o usuário disser que a voz está "ABAFADA" ou "TAMPADA", você deve AUMENTAR aqui para desembolar e trazer inteligibilidade).
 - AGUDOS (5000Hz a 8000Hz): sibilância, esser, "s" forte, s forte, chiado, sibilante, assobio, crisp, estalos de boca, excesso de consoantes, sssss, "f" ou "t" fortes.
 - AR / SUPER AGUDOS (8000Hz a 20000Hz): ar, brilho, cristalino, seda, respiração, aberto, cintilante, leveza, fôlego, areia, agudo extremo.
 
 REGRA DE DIREÇÃO: 
-Identifique verbos de direção ("remover", "reduzir", "abaixar", "tirar", "cortar", "limpar", "amenizar", "suavizar", "seco"). Se a intenção for negativa, SUBTRAIA do ganho atual. Se for "aumentar", "mais", "adicionar", SOME ao ganho. EXCEÇÃO: Problemas como "fraca" e "abafada" exigem GANHO POSITIVO nas bandas corretas para resolver o defeito.
+Identifique verbos de direção de redução ("diminuir", "remover", "reduzir", "abaixar", "tirar", "cortar", "limpar", "amenizar", "suavizar", "atenuar", "seco"). Se a intenção for negativa, SUBTRAIA do ganho atual. Se for "aumentar", "mais", "adicionar", SOME ao ganho. EXCEÇÃO: Problemas como "fraca" e "abafada" exigem GANHO POSITIVO nas bandas corretas para resolver o defeito.
 
 REGRA DE INTENSIDADE (DOSAGEM DE DB):
 - Se o usuário usar modificadores agressivos ("MUITO", "DEMAIS", "BASTANTE"): Faça uma alteração pesada (ex: +/- 6dB a 9dB).
@@ -105,13 +105,13 @@ REGRA DE INTENSIDADE (DOSAGEM DE DB):
     }
 }
 
-// --- Fallback com Lógica de Multiplicador de Intensidade ---
+// --- Fallback com Lógica de Verbos Corrigida ---
 function fallbackMockAI(prompt, currentPoints, isNewCurve) {
     let pts = (!isNewCurve && currentPoints && currentPoints.length > 0) ? JSON.parse(JSON.stringify(currentPoints)) : [ {f: 150, g: 0, q: 1.2}, {f: 400, g: 0, q: 1.2}, {f: 1000, g: 0, q: 1.2}, {f: 3000, g: 0, q: 1.2}, {f: 8000, g: 0, q: 1.2} ];
     const p = prompt.toLowerCase();
     
-    // Vocabulário de Direção Geral
-    const cutWords = ["menos", "remov", "tir", "abai", "reduz", "cort", "seco", "limp", "ameniz", "suaviz"];
+    // Vocabulário de Direção Geral (agora inclui diminua, atenuar, baixar, etc)
+    const cutWords = ["menos", "remov", "tir", "abai", "reduz", "cort", "seco", "limp", "ameniz", "suaviz", "diminu", "baix", "atenu"];
     const isCut = cutWords.some(w => p.includes(w));
 
     // Lógica de Intensidade (Multiplicadores)
@@ -144,22 +144,20 @@ function fallbackMockAI(prompt, currentPoints, isNewCurve) {
 
         // 3. Médios (500Hz - 2000Hz)
         if (mediosWords.some(w => p.includes(w)) && pt.f > 500 && pt.f <= 2000) {
-            // "fraca" / "sumida" -> forçar ganho positivo para resolver o problema
             if (p.includes("fraca") || p.includes("sem força") || p.includes("sumida")) pt.g += boostVal;
             else pt.g += dir;
         }
         
         // 4. Médios Agudos (2000Hz - 5000Hz)
         if (mediosAgudosWords.some(w => p.includes(w)) && pt.f > 2000 && pt.f <= 5000) {
-            if (p.includes("estridente") || p.includes("ardido") || p.includes("perfurante") || p.includes("metálico")) pt.g += (cutVal * 1.2); // Hard cut
-            // "abafada" -> forçar ganho positivo para trazer clareza/presença
+            if (p.includes("estridente") || p.includes("ardido") || p.includes("perfurante") || p.includes("metálico")) pt.g += (cutVal * 1.2); 
             else if (p.includes("abafada") || p.includes("abafado") || p.includes("tampada")) pt.g += boostVal;
             else pt.g += dir;
         }
         
         // 5. Agudos e Ar (5000Hz+)
         if (agudosWords.some(w => p.includes(w)) && pt.f > 5000) {
-            if (/\bs\b/.test(p) || p.includes("sibilância") || p.includes("s forte") || p.includes("chiado")) pt.g += (cutVal * 1.2); // De-esser
+            if (/\bs\b/.test(p) || p.includes("sibilância") || p.includes("s forte") || p.includes("chiado")) pt.g += (cutVal * 1.2); 
             else pt.g += dir;
         }
     });
