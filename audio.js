@@ -124,14 +124,15 @@ function updateRoutingState(engine) {
     const t = engine.audioCtx.currentTime;
     const isGlobalOn = engine.isPowerOn;
 
-    const out1On = isGlobalOn && engine.routing.out1EffectOn;
-    engine.out1Wet.gain.setTargetAtTime(out1On ? 1 : 0, t, 0.05);
-    engine.out1Dry.gain.setTargetAtTime(out1On ? 0 : 1, t, 0.05);
+    // CORREÇÃO: O switch agora atua como um "Mute/Enable" do canal todo
+    const out1Enabled = engine.routing.out1EffectOn;
+    engine.out1Wet.gain.setTargetAtTime((out1Enabled && isGlobalOn) ? 1 : 0, t, 0.05);
+    engine.out1Dry.gain.setTargetAtTime((out1Enabled && !isGlobalOn) ? 1 : 0, t, 0.05);
     engine.out1Vol.gain.setTargetAtTime(engine.routing.out1Vol / 100, t, 0.05);
 
-    const out2On = isGlobalOn && engine.routing.out2EffectOn;
-    engine.out2Wet.gain.setTargetAtTime(out2On ? 1 : 0, t, 0.05);
-    engine.out2Dry.gain.setTargetAtTime(out2On ? 0 : 1, t, 0.05);
+    const out2Enabled = engine.routing.out2EffectOn;
+    engine.out2Wet.gain.setTargetAtTime((out2Enabled && isGlobalOn) ? 1 : 0, t, 0.05);
+    engine.out2Dry.gain.setTargetAtTime((out2Enabled && !isGlobalOn) ? 1 : 0, t, 0.05);
     engine.out2Vol.gain.setTargetAtTime(engine.routing.out2Vol / 100, t, 0.05);
 }
 
