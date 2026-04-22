@@ -11,7 +11,8 @@ const i18nDict = {
         new_preset: "Nome do novo Preset", btn_ok: "OK", routing: "DUAL OUTPUT ROUTING", dup_out: "Duplicar saída", out1: "OUTPUT 1", out2: "OUTPUT 2",
         ai_cmd: "Comando com IA ou Voz", new_curve: "Nova curva", btn_ai: "Ajustar com IA", ai_sleep: "🤖 A Inteligência Artificial está adormecida.", apply_key: "Aplicar Chave da API",
         preset_flat: "Padrão (Flat)", system_default: "Padrão do Sistema", none_out: "Nenhuma", menu_move: "Mover (Ordem)", menu_edit: "Editar Nomes", menu_del: "Excluir Presets",
-        ai_placeholder: "Ex: Deixe os graves mais fortes..."
+        ai_placeholder: "Ex: Deixe os graves mais fortes...", my_presets: "Meus Presets", ready_presets: "Presets Prontos",
+        dl_title: "Opções de Download", dl_current: "Preset Atual", dl_batch: "Em Lote", dl_selected: "Baixar Selecionados", btn_cancel: "Cancelar"
     },
     'en': {
         welcome: "Welcome to Studio!", step1_title: "1. Mic & Outputs 🎙️", step1_desc: "Required to read audio from tabs, PC devices, and Voice commands.",
@@ -24,7 +25,8 @@ const i18nDict = {
         new_preset: "New Preset Name", btn_ok: "OK", routing: "DUAL OUTPUT ROUTING", dup_out: "Duplicate output", out1: "OUTPUT 1", out2: "OUTPUT 2",
         ai_cmd: "AI or Voice Command", new_curve: "New curve", btn_ai: "Adjust with AI", ai_sleep: "🤖 Artificial Intelligence is asleep.", apply_key: "Apply API Key",
         preset_flat: "Default (Flat)", system_default: "System Default", none_out: "None", menu_move: "Move (Order)", menu_edit: "Edit Names", menu_del: "Delete Presets",
-        ai_placeholder: "Ex: Make the bass stronger..."
+        ai_placeholder: "Ex: Make the bass stronger...", my_presets: "My Presets", ready_presets: "Built-in Presets",
+        dl_title: "Download Options", dl_current: "Current Preset", dl_batch: "Batch Download", dl_selected: "Download Selected", btn_cancel: "Cancel"
     }
 };
 
@@ -114,6 +116,7 @@ if (themeToggle) {
         document.body.classList.toggle('dark-mode');
         const isDark = document.body.classList.contains('dark-mode');
         chrome.storage.local.set({ theme: isDark ? 'dark' : 'light' });
+        drawGraph();
     });
 }
 
@@ -294,7 +297,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
 function sendToEngine(msgParams, callback) { if (currentTabId !== null) chrome.runtime.sendMessage({ ...msgParams, tabId: currentTabId }, callback); }
 
 // --- Histórico ---
-let eqPoints = []; const MAX_POINTS = 15;
+let eqPoints = []; const MAX_POINTS = 24; 
 let eqHistory = []; let historyIndex = -1; const MAX_HISTORY = 10;
 const btnUndo = document.getElementById('btn-undo'); const btnRedo = document.getElementById('btn-redo');
 
@@ -314,11 +317,12 @@ function saveHistoryState(pointsToSave) {
     updateHistoryButtons();
 }
 
-function doUndo() { if (historyIndex > 0) { historyIndex--; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); } }
-function doRedo() { if (historyIndex < eqHistory.length - 1) { historyIndex++; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); } }
+function doUndo() { if (historyIndex > 0) { historyIndex--; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); surfTheCurve(); } }
+function doRedo() { if (historyIndex < eqHistory.length - 1) { historyIndex++; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); surfTheCurve(); } }
 btnUndo.addEventListener('click', doUndo); btnRedo.addEventListener('click', doRedo);
 
-// --- Equalizador Visual (Sliders & Toggle UI) ---
+
+// --- Lógica Dinâmica de Sliders (12 vs 24 bandas) ---
 const viewGraph = document.getElementById('view-graph');
 const viewSliders = document.getElementById('view-sliders');
 const btnToggleView = document.getElementById('btn-toggle-view');
@@ -326,82 +330,179 @@ const dbMeterFill = document.getElementById('db-meter-fill');
 const dbMeterClip = document.getElementById('db-meter-clip');
 
 let isGraphView = true;
-const sliderBands = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 12000, 16000, 20000];
-const sliderInputs = [];
+let sliderInputs = [];
+let isExpanded = false;
 
-if (viewSliders) {
-    sliderBands.forEach(freq => {
-        const wrap = document.createElement('div'); wrap.className = 'slider-wrapper';
+// Configurações de Frequência
+const bandsNormal = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 12000, 16000, 20000];
+const bandsExpanded = [20, 32, 45, 63, 90, 125, 180, 250, 350, 500, 700, 1000, 1400, 2000, 2800, 4000, 5600, 8000, 9500, 11000, 12500, 14000, 16000, 20000];
+
+// SVGs do Botão Toggle
+const svgSlidersIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>`;
+const svgGraphIcon = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>`;
+
+function buildSliders() {
+    if (!viewSliders) return;
+    viewSliders.innerHTML = ''; 
+    sliderInputs = [];
+    
+    const activeBands = isExpanded ? bandsExpanded : bandsNormal;
+    const sliderWidthVal = isExpanded ? '230px' : '110px'; 
+    
+    activeBands.forEach(freq => {
+        const wrap = document.createElement('div'); 
+        wrap.className = 'slider-wrapper';
+        
         const input = document.createElement('input');
-        input.type = 'range'; input.min = -15; input.max = 15; input.step = 0.1; input.value = 0;
-        input.className = 'steel-thumb vertical-slider';
+        input.type = 'range'; 
+        input.min = -15; 
+        input.max = 15; 
+        input.step = 0.1; 
+        input.value = 0;
+        input.className = 'vertical-slider';
+        input.style.setProperty('--slider-width', sliderWidthVal);
         input.title = `${freq >= 1000 ? (freq/1000) + 'k' : freq}Hz`;
-        const lbl = document.createElement('span'); lbl.className = 'slider-label';
+        
+        const lbl = document.createElement('span'); 
+        lbl.className = 'slider-label';
         lbl.textContent = freq >= 1000 ? (freq/1000) + 'k' : freq;
 
-        input.addEventListener('input', (e) => handleSliderChange(freq, parseFloat(e.target.value)));
-        input.addEventListener('change', () => { sendPointsToEngine(true); saveHistoryState(eqPoints); });
+        input.addEventListener('input', (e) => {
+            // isIsolated = true -> Arrasto (Drag) = Q estreito (2.0)
+            handleSliderChange(freq, parseFloat(e.target.value), true);
+            input.dataset.userModified = 'true'; 
+        });
+        
+        input.addEventListener('change', () => { 
+            sendPointsToEngine(true); 
+            saveHistoryState(eqPoints); 
+            setTimeout(() => { input.dataset.userModified = 'false'; }, 1000); 
+        });
         
         input.addEventListener('wheel', (e) => {
             e.preventDefault();
             let step = e.deltaY < 0 ? 0.5 : -0.5;
             let newVal = Math.max(-15, Math.min(15, parseFloat(input.value) + step));
             input.value = newVal;
-            handleSliderChange(freq, newVal);
+            input.dataset.userModified = 'true';
+            
+            // isIsolated = false -> Scroll = Q largo (0.5)
+            handleSliderChange(freq, newVal, false);
+            
             clearTimeout(window.sliderWheelTimeout);
             window.sliderWheelTimeout = setTimeout(() => {
                 sendPointsToEngine(true);
                 saveHistoryState(eqPoints);
+                input.dataset.userModified = 'false';
             }, 500);
         }, { passive: false });
 
-        wrap.appendChild(input); wrap.appendChild(lbl); viewSliders.appendChild(wrap); sliderInputs.push({ freq, input });
+        wrap.appendChild(input); 
+        wrap.appendChild(lbl); 
+        viewSliders.appendChild(wrap); 
+        sliderInputs.push({ freq, input });
     });
+
+    if (!isGraphView) {
+        surfTheCurve(); 
+    }
 }
 
-function syncSlidersToGraph() {
-    sliderInputs.forEach(s => {
-        let pt = eqPoints.find(p => Math.abs(p.f - s.freq) < (s.freq * 0.15));
-        s.input.value = pt ? pt.g : 0;
-    });
-}
-
-function handleSliderChange(freq, value) {
-    let pt = eqPoints.find(p => Math.abs(p.f - freq) < (freq * 0.15));
-    if (pt) { pt.g = value; pt.f = freq; } 
-    else {
-        if (eqPoints.length < MAX_POINTS) { eqPoints.push({ f: freq, g: value, q: 1.2 }); } 
-        else {
+function handleSliderChange(freq, value, isIsolated = false) {
+    let pt = eqPoints.find(p => Math.abs(p.f - freq) < (freq * 0.05));
+    let targetQ = isIsolated ? 2.0 : 0.5; 
+    
+    if (pt) { 
+        pt.g = value; 
+        pt.f = freq; 
+        pt.q = targetQ;
+    } else {
+        if (eqPoints.length < MAX_POINTS) { 
+            eqPoints.push({ f: freq, g: value, q: targetQ }); 
+        } else {
             let minG = 100, minIdx = -1;
             eqPoints.forEach((p, i) => { if (Math.abs(p.g) < minG) { minG = Math.abs(p.g); minIdx = i; } });
-            if (minIdx !== -1) eqPoints[minIdx] = { f: freq, g: value, q: 1.2 };
+            if (minIdx !== -1) eqPoints[minIdx] = { f: freq, g: value, q: targetQ };
         }
     }
     sendPointsToEngine();
     markAsModified();
 }
 
+function applyExpandState(expanded) {
+    isExpanded = expanded; 
+    const mainViewArea = document.getElementById('main-view-area');
+    
+    if (expanded) { 
+        document.body.classList.add('expanded'); 
+        canvas.width = 710; 
+        canvas.height = 300; 
+        if(mainViewArea) mainViewArea.style.height = '300px'; 
+    } else { 
+        document.body.classList.remove('expanded'); 
+        canvas.width = 330; 
+        canvas.height = 150; 
+        if(mainViewArea) mainViewArea.style.height = '150px'; 
+    }
+    
+    buildSliders(); 
+    drawGraph();
+}
+
+chrome.storage.local.get(['isExpanded'], (res) => { 
+    if (res.isExpanded) applyExpandState(true); 
+    else buildSliders(); 
+});
+
+btnExpand.addEventListener('click', () => { 
+    const newState = !isExpanded; 
+    chrome.storage.local.set({ isExpanded: newState }); 
+    applyExpandState(newState); 
+});
+
 if (btnToggleView) {
+    btnToggleView.innerHTML = svgSlidersIcon;
     btnToggleView.addEventListener('click', () => {
         isGraphView = !isGraphView;
         if (isGraphView) {
             viewGraph.style.display = 'flex'; viewSliders.style.display = 'none'; viewSliders.classList.add('hidden');
-            drawGraph(); btnToggleView.style.opacity = '1';
+            drawGraph(); 
+            btnToggleView.style.opacity = '1';
+            btnToggleView.innerHTML = svgSlidersIcon;
         } else {
             viewGraph.style.display = 'none'; viewSliders.style.display = 'flex'; viewSliders.classList.remove('hidden');
-            syncSlidersToGraph(); btnToggleView.style.opacity = '0.5';
+            btnToggleView.style.opacity = '1';
+            btnToggleView.innerHTML = svgGraphIcon;
+            surfTheCurve(); 
         }
     });
 }
 
+// 16 Presets Nativos
 const defaultPresets = { 
     'Padrao': [], 
-    'Pop Rock': [{f:150,g:2,q:1.2},{f:400,g:1,q:1.2},{f:1000,g:-1,q:1.2},{f:3000,g:1,q:1.2},{f:8000,g:2,q:1.2}], 
-    'Rock': [{f:150,g:5,q:1.2},{f:400,g:2,q:1.2},{f:1000,g:-4,q:1.2},{f:3000,g:3,q:1.2},{f:8000,g:5,q:1.2}], 
-    'Bass Booster': [{f:150,g:8,q:1.2},{f:400,g:4,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:0,q:1.2},{f:8000,g:0,q:1.2}], 
-    'Treble Booster': [{f:150,g:0,q:1.2},{f:400,g:0,q:1.2},{f:1000,g:0,q:1.2},{f:3000,g:4,q:1.2},{f:8000,g:8,q:1.2}],
+    'Acoustic': [{f:60,g:2,q:1.2},{f:250,g:1,q:1.2},{f:1000,g:1,q:1.2},{f:4000,g:2,q:1.2},{f:10000,g:3,q:1.2}],
+    'Bass Booster': [{f:60,g:8,q:1.2},{f:250,g:4,q:1.2},{f:1000,g:0,q:1.2},{f:4000,g:0,q:1.2},{f:10000,g:0,q:1.2}], 
+    'Classical': [{f:60,g:3,q:1.2},{f:250,g:0,q:1.2},{f:1000,g:0,q:1.2},{f:4000,g:2,q:1.2},{f:10000,g:3,q:1.2}],
+    'Dance': [{f:60,g:6,q:1.2},{f:250,g:0,q:1.2},{f:1000,g:2,q:1.2},{f:4000,g:4,q:1.2},{f:10000,g:1,q:1.2}],
+    'Deep': [{f:60,g:5,q:1.2},{f:250,g:3,q:1.2},{f:1000,g:0,q:1.2},{f:4000,g:-2,q:1.2},{f:10000,g:-4,q:1.2}],
+    'Electronic': [{f:60,g:4,q:1.2},{f:250,g:-1,q:1.2},{f:1000,g:1,q:1.2},{f:4000,g:4,q:1.2},{f:10000,g:5,q:1.2}],
+    'Hip Hop': [{f:60,g:5,q:1.2},{f:250,g:3,q:1.2},{f:1000,g:-1,q:1.2},{f:4000,g:2,q:1.2},{f:10000,g:3,q:1.2}],
+    'Jazz': [{f:60,g:3,q:1.2},{f:250,g:2,q:1.2},{f:1000,g:-2,q:1.2},{f:4000,g:2,q:1.2},{f:10000,g:4,q:1.2}],
+    'Latin': [{f:60,g:4,q:1.2},{f:250,g:0,q:1.2},{f:1000,g:0,q:1.2},{f:4000,g:2,q:1.2},{f:10000,g:4,q:1.2}],
+    'Lounge': [{f:60,g:-2,q:1.2},{f:250,g:-1,q:1.2},{f:1000,g:0,q:1.2},{f:4000,g:1,q:1.2},{f:10000,g:2,q:1.2}],
+    'Piano': [{f:60,g:1,q:1.2},{f:250,g:3,q:1.2},{f:1000,g:0,q:1.2},{f:4000,g:2,q:1.2},{f:10000,g:3,q:1.2}],
+    'Pop Rock': [{f:60,g:2,q:1.2},{f:250,g:1,q:1.2},{f:1000,g:-1,q:1.2},{f:4000,g:1,q:1.2},{f:10000,g:2,q:1.2}], 
+    'R&B': [{f:60,g:3,q:1.2},{f:250,g:1,q:1.2},{f:1000,g:0,q:1.2},{f:4000,g:2,q:1.2},{f:10000,g:3,q:1.2}],
+    'Rock': [{f:60,g:5,q:1.2},{f:250,g:2,q:1.2},{f:1000,g:-4,q:1.2},{f:4000,g:3,q:1.2},{f:10000,g:5,q:1.2}], 
+    'Treble Booster': [{f:60,g:0,q:1.2},{f:250,g:0,q:1.2},{f:1000,g:0,q:1.2},{f:4000,g:4,q:1.2},{f:10000,g:8,q:1.2}],
+    'Vocal': [{f:60,g:-2,q:1.2},{f:250,g:-1,q:1.2},{f:1000,g:4,q:1.2},{f:4000,g:3,q:1.2},{f:10000,g:1,q:1.2}]
 };
-const presetIcons = { 'Pop Rock': '🎸', 'Rock': '🤘', 'Vocal': '🎤', 'Bass Booster': '🔈', 'Treble Booster': '🔊' };
+const presetIcons = { 
+    'Acoustic': '🎸', 'Bass Booster': '🔈', 'Classical': '🎻', 'Dance': '💃', 'Deep': '🕳️', 
+    'Electronic': '🎛️', 'Hip Hop': '🧢', 'Jazz': '🎷', 'Latin': '🎺', 'Lounge': '🍸', 
+    'Piano': '🎹', 'Pop Rock': '🎤', 'R&B': '🤎', 'Rock': '🤘', 'Treble Booster': '🔊', 'Vocal': '🗣️' 
+};
 
 function getStorageData(callback) {
     chrome.storage.local.get(['customPresets', 'customOrder', 'favorites'], (res) => {
@@ -443,8 +544,29 @@ function renderDropdownList(custom, order, favs) {
     };
 
     createItem('Padrao', 'Padrão (Flat)', '🎚️');
-    order.forEach(key => { const data = custom[key]; const type = data.type || 'created'; const icon = type === 'imported' ? '⬆️' : '🔧'; createItem(`custom_${key}`, key, icon); });
-    Object.keys(defaultPresets).forEach(key => { if (key !== 'Padrao') createItem(key, key, presetIcons[key] || '🎵'); });
+    
+    if (order.length > 0) {
+        const divSep1 = document.createElement('div');
+        const headerText = i18nDict[currentLang] ? i18nDict[currentLang].my_presets : 'Meus Presets';
+        divSep1.innerHTML = `<div class="preset-divider"></div><div class="preset-group-header">${headerText}</div>`;
+        presetOptions.appendChild(divSep1);
+        
+        order.forEach(key => { 
+            const data = custom[key]; 
+            const type = data.type || 'created'; 
+            const icon = type === 'imported' ? '⬆️' : '🔧'; 
+            createItem(`custom_${key}`, key, icon); 
+        });
+    }
+
+    const divSep2 = document.createElement('div');
+    const headerTextReady = i18nDict[currentLang] ? i18nDict[currentLang].ready_presets : 'Presets Prontos';
+    divSep2.innerHTML = `<div class="preset-divider"></div><div class="preset-group-header">${headerTextReady}</div>`;
+    presetOptions.appendChild(divSep2);
+
+    Object.keys(defaultPresets).forEach(key => { 
+        if (key !== 'Padrao') createItem(key, key, presetIcons[key] || '🎵'); 
+    });
 }
 
 function toggleFavorite(key, favs, custom, order) {
@@ -486,6 +608,7 @@ function openModal(mode) {
     getStorageData((custom, order, favs) => {
         modalList.innerHTML = ''; modalOverlay.classList.remove('hidden'); modalOverlay.style.display = 'flex';
         if (order.length === 0) { modalTitle.textContent = i18nDict[currentLang].modal_manage; modalList.innerHTML = `<div style="text-align:center; padding: 25px 10px; color: var(--text-muted); font-size: 0.9rem;">Nenhum preset encontrado.</div>`; return; }
+        
         if (mode === 'move') {
             modalTitle.textContent = i18nDict[currentLang].menu_move;
             order.forEach((key, idx) => {
@@ -501,8 +624,13 @@ function openModal(mode) {
             modalTitle.textContent = i18nDict[currentLang].menu_edit;
             order.forEach((key) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
-                div.innerHTML = `<input type="text" value="${key}"> <button class="modal-btn">Salvar</button>`;
-                div.querySelector('.modal-btn').onclick = () => {
+                div.innerHTML = `
+                    <input type="text" value="${key}" style="flex: 1 1 auto; min-width: 0; border: none; background: transparent; color: var(--text-main); outline: none; padding: 4px; font-weight: bold; border-bottom: 1px solid rgba(128,128,128,0.2);">
+                    <button class="modal-icon-btn" title="Renomear" style="margin-left: auto;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </button>
+                `;
+                div.querySelector('.modal-icon-btn').onclick = () => {
                     const newKey = div.querySelector('input').value.trim();
                     if (!newKey || newKey === key || custom[newKey]) return;
                     custom[newKey] = custom[key]; delete custom[key]; order[order.indexOf(key)] = newKey;
@@ -517,8 +645,13 @@ function openModal(mode) {
             modalTitle.textContent = i18nDict[currentLang].menu_del;
             order.forEach((key) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
-                div.innerHTML = `<span>${key}</span> <button class="modal-btn" style="color:red;">🗑️</button>`;
-                div.querySelector('button').onclick = () => {
+                div.innerHTML = `
+                    <span style="flex: 1 1 auto; min-width: 0; padding: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${key}</span> 
+                    <button class="modal-icon-btn" title="Excluir" style="margin-left: auto; color: #ef4444;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                `;
+                div.querySelector('.modal-icon-btn').onclick = () => {
                     delete custom[key]; order = order.filter(k => k !== key); favs = favs.filter(f => f !== `custom_${key}`);
                     if (currentSelectedPresetKey === `custom_${key}`) applyPreset('Padrao');
                     saveStorageData(custom, order, favs, () => openModal('delete'));
@@ -528,21 +661,13 @@ function openModal(mode) {
         }
     });
 }
+
 document.getElementById('btn-menu-move').addEventListener('click', () => { openModal('move'); dotsDropdown.classList.add('hidden'); });
 document.getElementById('btn-menu-edit').addEventListener('click', () => { openModal('edit'); dotsDropdown.classList.add('hidden'); });
 document.getElementById('btn-menu-delete').addEventListener('click', () => { openModal('delete'); dotsDropdown.classList.add('hidden'); });
 btnModalClose.addEventListener('click', () => { modalOverlay.classList.add('hidden'); modalOverlay.style.display = 'none'; renderUI(); });
 renderUI();
 
-let isExpanded = false;
-function applyExpandState(expanded) {
-    isExpanded = expanded; const mainViewArea = document.getElementById('main-view-area');
-    if (expanded) { document.body.classList.add('expanded'); canvas.width = 710; canvas.height = 300; if(mainViewArea) mainViewArea.style.height = '300px'; } 
-    else { document.body.classList.remove('expanded'); canvas.width = 330; canvas.height = 150; if(mainViewArea) mainViewArea.style.height = '150px'; }
-    drawGraph();
-}
-chrome.storage.local.get(['isExpanded'], (res) => { if (res.isExpanded) applyExpandState(true); });
-btnExpand.addEventListener('click', () => { const newState = !isExpanded; chrome.storage.local.set({ isExpanded: newState }); applyExpandState(newState); });
 
 async function loadAudioOutputs() {
     try {
@@ -610,7 +735,7 @@ function getXY(e) { const rect = canvas.getBoundingClientRect(); const scaleX = 
 
 let lastSendTime = 0;
 function sendPointsToEngine(force = false) {
-    eqPoints.sort((a, b) => a.f - b.f); const now = Date.now(); syncSlidersToGraph();
+    eqPoints.sort((a, b) => a.f - b.f); const now = Date.now();
     if (force || now - lastSendTime > 40) { sendToEngine({ action: 'update_dynamic_eq', points: eqPoints }); lastSendTime = now; }
 }
 
@@ -658,6 +783,26 @@ document.addEventListener('keydown', (e) => {
 canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); if (hoveredPointIndex !== -1) { eqPoints.splice(hoveredPointIndex, 1); hoveredPointIndex = -1; selectedPointIndex = -1; sendPointsToEngine(true); saveHistoryState(eqPoints); markAsModified(); } });
 
 let currentDBResponse = [], currentBoosterDB = 0; let currentSpectrum = []; let currentSampleRate = 48000;
+
+function surfTheCurve() {
+    if (isGraphView || !currentDBResponse || currentDBResponse.length === 0) return;
+    
+    const width = canvas.width;
+    sliderInputs.forEach(s => {
+        if (s.input.dataset.userModified === 'true') return; 
+        
+        const pt = eqPoints.find(p => Math.abs(p.f - s.freq) < (s.freq * 0.05));
+        if (pt) {
+            s.input.value = pt.g; 
+        } else {
+            const targetX = freqToX(s.freq);
+            const arrayIndex = Math.round((targetX / width) * (currentDBResponse.length - 1));
+            if (arrayIndex >= 0 && arrayIndex < currentDBResponse.length) {
+                s.input.value = currentDBResponse[arrayIndex];
+            }
+        }
+    });
+}
 
 function drawGraph() {
     if (!canvas || !ctx || !isGraphView) return;
@@ -736,17 +881,14 @@ function animationLoop() {
                     if (currentSpectrum[i] > peak) peak = currentSpectrum[i];
                 }
                 
-                // NOVO: Cálculo Dinâmico com Attack/Release Suave para melhor percepção de graves (potência 0.7)
                 let normalizedPeak = peak / 255;
                 let targetPercent = Math.pow(normalizedPeak, 0.7) * 100;
                 
                 if (!window.dbMeterPercent) window.dbMeterPercent = 0;
                 
                 if (targetPercent > window.dbMeterPercent) {
-                    // Attack Rápido: Sobe mais ágil
                     window.dbMeterPercent = window.dbMeterPercent * 0.4 + targetPercent * 0.6; 
                 } else {
-                    // Release Suave: Desce de forma fluída
                     window.dbMeterPercent = window.dbMeterPercent * 0.85 + targetPercent * 0.15; 
                 }
                 
@@ -778,7 +920,7 @@ chrome.runtime.onMessage.addListener((message) => {
     if (message.tabId !== currentTabId) return;
     
     if (message.action === 'sync_popup_state') {
-        eqPoints = message.points || []; syncSlidersToGraph();
+        eqPoints = message.points || []; 
         const vol = message.boosterVolume || 100; setKnobValue(vol);
         
         chrome.storage.local.get([`preset_${currentTabId}`], (res) => {
@@ -805,7 +947,11 @@ chrome.runtime.onMessage.addListener((message) => {
         if (isInitialLoad) { saveHistoryState(eqPoints); isInitialLoad = false; }
         if (window.justGotAIPoints) { saveHistoryState(eqPoints); window.justGotAIPoints = false; }
     } 
-    else if (message.action === 'update_graph_data') { currentDBResponse = message.dbValues; currentBoosterDB = message.boosterDB; }
+    else if (message.action === 'update_graph_data') { 
+        currentDBResponse = message.dbValues; 
+        currentBoosterDB = message.boosterDB; 
+        surfTheCurve();
+    }
     return true;
 });
 
@@ -838,7 +984,6 @@ btnShowSave.addEventListener('click', () => {
     }
 });
 
-// Ação do Novo Botão Cancelar
 if (btnCancelPreset) {
     btnCancelPreset.addEventListener('click', () => {
         saveContainer.classList.add('hidden');
@@ -859,38 +1004,124 @@ btnSavePreset.addEventListener('click', () => {
     });
 });
 
+// --- NOVO: BATCH UPLOAD (Até 50 arquivos) ---
 btnUpload.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            try {
-                const data = JSON.parse(evt.target.result);
-                if (data && data.points && Array.isArray(data.points)) {
-                    eqPoints = data.points; sendPointsToEngine(true); saveHistoryState(eqPoints); 
-                    const rawName = data.presetName ? data.presetName.replace('Preset - ', '') : "Importado"; const importName = `Preset - ${rawName}`;
-                    getStorageData((custom, order, favs) => { custom[importName] = { points: eqPoints, type: 'imported' }; if(!order.includes(importName)) order.push(importName); saveStorageData(custom, order, favs, () => { currentSelectedPresetKey = `custom_${importName}`; renderUI(); }); });
-                } else { alert("Arquivo JSON inválido."); }
-            } catch (err) { alert("Erro ao ler o arquivo."); }
-        }; reader.readAsText(file); 
-    } e.target.value = ''; 
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    if (files.length > 50) { alert("Por favor, selecione no máximo 50 arquivos por vez."); return; }
+    
+    getStorageData((custom, order, favs) => {
+        let filesProcessed = 0;
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = JSON.parse(evt.target.result);
+                    if (data && data.points && Array.isArray(data.points)) {
+                        const rawName = data.presetName ? data.presetName.replace('Preset - ', '') : file.name.replace('.json', '');
+                        const importName = `${rawName}`;
+                        custom[importName] = { points: data.points, type: 'imported' }; 
+                        if(!order.includes(importName)) order.push(importName); 
+                        
+                        if (filesProcessed === files.length - 1) {
+                            eqPoints = data.points; sendPointsToEngine(true); saveHistoryState(eqPoints);
+                            currentSelectedPresetKey = `custom_${importName}`;
+                        }
+                    }
+                } catch (err) { console.error("Erro no arquivo:", file.name); }
+                
+                filesProcessed++;
+                if (filesProcessed === files.length) {
+                    saveStorageData(custom, order, favs, () => renderUI());
+                }
+            }; 
+            reader.readAsText(file); 
+        });
+    });
+    e.target.value = ''; 
 });
 
+// --- NOVO: BATCH DOWNLOAD SYSTEM ---
+const dlModal = document.getElementById('download-modal-overlay');
+const btnDlCurrent = document.getElementById('btn-dl-current');
+const btnDlBatch = document.getElementById('btn-dl-batch');
+const batchDlSection = document.getElementById('batch-dl-section');
+const batchDlList = document.getElementById('batch-dl-list');
+const btnExecBatchDl = document.getElementById('btn-exec-batch-dl');
+const btnCloseDlModal = document.getElementById('btn-close-dl-modal');
+
 btnDownload.addEventListener('click', () => {
-    let currentName = currentSelectedPresetKey; if (currentName.startsWith('custom_')) currentName = currentName.replace('custom_', ''); else if (currentName === 'Padrao') currentName = "Meu_EQ";
-    const cleanName = currentName.replace('Preset - ', ''); const dataObj = { presetName: `Preset - ${cleanName}`, points: eqPoints };
+    dlModal.classList.remove('hidden');
+    batchDlSection.classList.add('hidden');
+    document.getElementById('dl-options-container').style.display = 'flex';
+});
+
+btnCloseDlModal.addEventListener('click', () => { dlModal.classList.add('hidden'); });
+
+btnDlCurrent.addEventListener('click', () => {
+    executeSingleDownload(currentSelectedPresetKey, eqPoints);
+    dlModal.classList.add('hidden');
+});
+
+btnDlBatch.addEventListener('click', () => {
+    document.getElementById('dl-options-container').style.display = 'none';
+    batchDlSection.classList.remove('hidden');
+    batchDlSection.style.display = 'flex';
+    
+    getStorageData((custom, order) => {
+        batchDlList.innerHTML = '';
+        order.forEach(key => {
+            const div = document.createElement('div');
+            div.className = 'batch-item';
+            div.innerHTML = `<input type="checkbox" class="batch-checkbox" value="${key}"> <span>${key}</span>`;
+            div.addEventListener('click', (e) => {
+                if(e.target.tagName !== 'INPUT') {
+                    const cb = div.querySelector('input');
+                    cb.checked = !cb.checked;
+                }
+            });
+            batchDlList.appendChild(div);
+        });
+        if(order.length === 0) batchDlList.innerHTML = '<div style="padding:15px; text-align:center; color:var(--text-muted);">Nenhum preset na biblioteca.</div>';
+    });
+});
+
+btnExecBatchDl.addEventListener('click', () => {
+    const checkboxes = batchDlList.querySelectorAll('.batch-checkbox:checked');
+    if(checkboxes.length === 0) return;
+    
+    getStorageData((custom) => {
+        checkboxes.forEach((cb, index) => {
+            const key = cb.value;
+            if(custom[key]) {
+                setTimeout(() => {
+                    executeSingleDownload(`Preset - ${key}`, custom[key].points);
+                }, index * 300); 
+            }
+        });
+    });
+    dlModal.classList.add('hidden');
+});
+
+function executeSingleDownload(presetNameRaw, pointsData) {
+    let cleanName = presetNameRaw.replace('custom_', '').replace('Preset - ', '');
+    if (cleanName === 'Padrao' || cleanName === 'Temp_Custom') {
+        cleanName = tempPresetName || "Meu_EQ";
+    }
+    const dataObj = { presetName: `Preset - ${cleanName}`, points: pointsData };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj, null, 2));
     const a = document.createElement('a'); a.href = dataStr; a.download = `Preset_${cleanName.replace(/\s+/g, '_')}.json`;
     document.body.appendChild(a); a.click(); a.remove();
-});
+}
+
 
 function sendAiCommand(promptText) {
     if (promptText === "") return;
     aiStatus.textContent = currentLang === 'pt-br' ? "A IA está pensando... 🤔" : "AI is thinking... 🤔"; 
     aiStatus.classList.remove('hidden'); aiInput.style.height = 'auto';
     const isNewCurve = aiNewCurveSwitch.checked; const pointsToSend = isNewCurve ? [] : eqPoints; 
-    sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => { setTimeout(() => { sendToEngine({ action: 'request_graph_update' }); window.justGotAIPoints = true; markAsModified(); }, 1000); });
+    sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => { setTimeout(() => { sendToEngine({ action: 'request_graph_update' }); window.justGotAIPoints = true; markAsModified(); surfTheCurve(); }, 1000); });
     aiInput.value = ""; setTimeout(() => { aiStatus.textContent = currentLang === 'pt-br' ? "Curva ajustada! 🚀" : "Curve adjusted! 🚀"; setTimeout(() => aiStatus.classList.add('hidden'), 3000); }, 1500);
 }
 btnSendAi.addEventListener('click', () => sendAiCommand(aiInput.value.trim()));
