@@ -368,7 +368,7 @@ function buildSliders() {
         lbl.textContent = freq >= 1000 ? (freq/1000) + 'k' : freq;
 
         input.addEventListener('input', (e) => {
-            // isIsolated = true -> Arrasto (Drag) = Q estreito (2.0)
+            // isIsolated = true -> Arrasto (Drag)
             handleSliderChange(freq, parseFloat(e.target.value), true);
             input.dataset.userModified = 'true'; 
         });
@@ -386,7 +386,7 @@ function buildSliders() {
             input.value = newVal;
             input.dataset.userModified = 'true';
             
-            // isIsolated = false -> Scroll = Q largo (0.5)
+            // isIsolated = false -> Scroll (Roda do Mouse)
             handleSliderChange(freq, newVal, false);
             
             clearTimeout(window.sliderWheelTimeout);
@@ -410,7 +410,8 @@ function buildSliders() {
 
 function handleSliderChange(freq, value, isIsolated = false) {
     let pt = eqPoints.find(p => Math.abs(p.f - freq) < (freq * 0.05));
-    let targetQ = isIsolated ? 2.0 : 0.5; 
+    // Correção: Se for isolado (arrastar) Q=8.0 para focar só na banda. Se for scroll, Q=1.5 para uma área menor.
+    let targetQ = isIsolated ? 8.0 : 1.5; 
     
     if (pt) { 
         pt.g = value; 
@@ -624,9 +625,10 @@ function openModal(mode) {
             modalTitle.textContent = i18nDict[currentLang].menu_edit;
             order.forEach((key) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
+                // CORREÇÃO: Input com width 100% para empurrar o ícone e margin-right de espaçamento
                 div.innerHTML = `
-                    <input type="text" value="${key}" style="flex: 1 1 auto; min-width: 0; border: none; background: transparent; color: var(--text-main); outline: none; padding: 4px; font-weight: bold; border-bottom: 1px solid rgba(128,128,128,0.2);">
-                    <button class="modal-icon-btn" title="Renomear" style="margin-left: auto;">
+                    <input type="text" value="${key}" style="width: 100%; min-width: 0; border: none; background: transparent; color: var(--text-main); outline: none; padding: 4px; font-weight: bold; border-bottom: 1px solid rgba(128,128,128,0.2); margin-right: 10px;">
+                    <button class="modal-icon-btn" title="Renomear" style="flex-shrink: 0;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                     </button>
                 `;
@@ -645,9 +647,10 @@ function openModal(mode) {
             modalTitle.textContent = i18nDict[currentLang].menu_del;
             order.forEach((key) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
+                // CORREÇÃO: Span com width 100% e margem para empurrar a lixeira
                 div.innerHTML = `
-                    <span style="flex: 1 1 auto; min-width: 0; padding: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${key}</span> 
-                    <button class="modal-icon-btn" title="Excluir" style="margin-left: auto; color: #ef4444;">
+                    <span style="width: 100%; padding: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 10px;">${key}</span> 
+                    <button class="modal-icon-btn" title="Excluir" style="color: #ef4444; flex-shrink: 0;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                     </button>
                 `;
