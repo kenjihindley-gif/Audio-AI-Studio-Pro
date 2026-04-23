@@ -368,7 +368,6 @@ function buildSliders() {
         lbl.textContent = freq >= 1000 ? (freq/1000) + 'k' : freq;
 
         input.addEventListener('input', (e) => {
-            // isIsolated = true -> Arrasto (Drag)
             handleSliderChange(freq, parseFloat(e.target.value), true);
             input.dataset.userModified = 'true'; 
         });
@@ -386,7 +385,6 @@ function buildSliders() {
             input.value = newVal;
             input.dataset.userModified = 'true';
             
-            // isIsolated = false -> Scroll (Roda do Mouse)
             handleSliderChange(freq, newVal, false);
             
             clearTimeout(window.sliderWheelTimeout);
@@ -410,8 +408,7 @@ function buildSliders() {
 
 function handleSliderChange(freq, value, isIsolated = false) {
     let pt = eqPoints.find(p => Math.abs(p.f - freq) < (freq * 0.05));
-    // Correção: Se for isolado (arrastar) Q=8.0 para focar só na banda. Se for scroll, Q=1.5 para uma área menor.
-    let targetQ = isIsolated ? 8.0 : 1.5; 
+    let targetQ = isIsolated ? 2.0 : 0.5; 
     
     if (pt) { 
         pt.g = value; 
@@ -625,7 +622,6 @@ function openModal(mode) {
             modalTitle.textContent = i18nDict[currentLang].menu_edit;
             order.forEach((key) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
-                // CORREÇÃO: Input com width 100% para empurrar o ícone e margin-right de espaçamento
                 div.innerHTML = `
                     <input type="text" value="${key}" style="width: 100%; min-width: 0; border: none; background: transparent; color: var(--text-main); outline: none; padding: 4px; font-weight: bold; border-bottom: 1px solid rgba(128,128,128,0.2); margin-right: 10px;">
                     <button class="modal-icon-btn" title="Renomear" style="flex-shrink: 0;">
@@ -647,7 +643,6 @@ function openModal(mode) {
             modalTitle.textContent = i18nDict[currentLang].menu_del;
             order.forEach((key) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
-                // CORREÇÃO: Span com width 100% e margem para empurrar a lixeira
                 div.innerHTML = `
                     <span style="width: 100%; padding: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 10px;">${key}</span> 
                     <button class="modal-icon-btn" title="Excluir" style="color: #ef4444; flex-shrink: 0;">
@@ -960,24 +955,104 @@ chrome.runtime.onMessage.addListener((message) => {
 
 animationLoop();
 
-// --- Booster ---
-let isKnobDragging = false; let currentBoosterVal = 100;
+// --- NOVO SISTEMA BOOSTER (ARRASTO CIRCULAR RELATIVO / SENSÍVEL) ---
+let isKnobDragging = false; 
+let currentBoosterVal = 100;
+let exactBoosterVal = 100; // Guarda os decimais para movimento ultra-suave
+let lastAngle = 0;
+
 function setKnobValue(vol) {
-    currentBoosterVal = Math.max(100, Math.min(300, vol)); boosterValueDisplay.textContent = `${currentBoosterVal}%`;
-    const percent = (currentBoosterVal - 100) / 200; const angle = percent * 270; 
-    boosterKnobWrapper.style.setProperty('--fill-angle', `${angle}deg`); boosterKnob.style.transform = `rotate(calc(-135deg + ${angle}deg))`;
+    currentBoosterVal = Math.max(100, Math.min(300, vol)); 
+    boosterValueDisplay.textContent = `${currentBoosterVal}%`;
+    const percent = (currentBoosterVal - 100) / 200; 
+    const angle = percent * 270; 
+    boosterKnobWrapper.style.setProperty('--fill-angle', `${angle}deg`); 
+    boosterKnob.style.transform = `rotate(calc(-135deg + ${angle}deg))`;
 }
+
 function handleKnobDrag(e) {
-    if (!isKnobDragging) return; const rect = boosterKnobWrapper.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2; const centerY = rect.top + rect.height / 2;
-    let angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
-    angle += 90; if (angle < -180) angle += 360; if (angle > 180) angle -= 360;
-    if (angle < -135) angle = -135; if (angle > 135) angle = 135;
-    const percent = (angle + 135) / 270; const newVol = Math.round(100 + (percent * 200));
-    setKnobValue(newVol); sendToEngine({ action: 'set_booster', volume: currentBoosterVal });
+    if (!isKnobDragging) return; 
+
+    const rect = boosterKnobWrapper.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2; 
+    const centerY = rect.top + rect.height / 2;
+
+    const deltaX = e.clientX - centerX;
+    const deltaY = e.clientY - centerY;
+
+    // Deadzone de 10px no centro (evita saltos se o mouse passar exatamente no meio)
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    if (distance < 10) return;
+
+    let currentAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+    let deltaAngle = currentAngle - lastAngle;
+
+    // Corrige a inversão brusca quando o mouse cruza a linha de -180 para +180
+    if (deltaAngle > 180) deltaAngle -= 360;
+    else if (deltaAngle < -180) deltaAngle += 360;
+
+    lastAngle = currentAngle;
+
+    // A MÁGICA DA SENSIBILIDADE: 0.3 significa 30% da velocidade original.
+    // Isso torna a válvula pesada e requer um movimento maior para preencher o volume.
+    const sensitivity = 0.3; 
+    
+    // Converte os graus girados para os pontos de volume (são 200 pontos divididos em 270 graus do desenho)
+    const volPointsPerDegree = 200 / 270;
+    const deltaVol = deltaAngle * volPointsPerDegree * sensitivity;
+
+    // Acumula o valor incluindo os decimais (movimento fluído)
+    exactBoosterVal += deltaVol;
+
+    // Trava física do volume (100 a 300)
+    if (exactBoosterVal < 100) exactBoosterVal = 100;
+    if (exactBoosterVal > 300) exactBoosterVal = 300;
+
+    const newVol = Math.round(exactBoosterVal);
+    
+    // Atualiza a UI e a engine apenas se o número real arredondado mudar
+    if (newVol !== currentBoosterVal) {
+        setKnobValue(newVol); 
+        sendToEngine({ action: 'set_booster', volume: currentBoosterVal });
+    }
 }
-boosterKnob.addEventListener('mousedown', (e) => { isKnobDragging = true; handleKnobDrag(e); });
-document.addEventListener('mousemove', handleKnobDrag); document.addEventListener('mouseup', () => { isKnobDragging = false; });
+
+function stopKnobDrag() {
+    if (isKnobDragging) {
+        isKnobDragging = false; 
+        document.body.style.cursor = 'default';
+    }
+}
+
+boosterKnob.addEventListener('mousedown', (e) => { 
+    e.preventDefault(); // Previne que o navegador tente arrastar o ícone
+    isKnobDragging = true; 
+    
+    const rect = boosterKnobWrapper.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2; 
+    const centerY = rect.top + rect.height / 2;
+    
+    // Registra o ponto inicial do clique em vez de pular para ele
+    lastAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+    exactBoosterVal = currentBoosterVal; // Sincroniza o valor inicial real
+    
+    document.body.style.cursor = 'grabbing';
+});
+
+// Duplo clique na válvula reseta o volume para 100%
+boosterKnob.addEventListener('dblclick', () => { 
+    exactBoosterVal = 100;
+    setKnobValue(100); 
+    sendToEngine({ action: 'set_booster', volume: 100 }); 
+});
+
+document.addEventListener('mousemove', handleKnobDrag); 
+
+// Travas de segurança para garantir que a válvula sempre solte
+document.addEventListener('mouseup', stopKnobDrag); 
+document.addEventListener('mouseleave', stopKnobDrag); 
+window.addEventListener('blur', stopKnobDrag); 
+
 
 btnShowSave.addEventListener('click', () => { 
     saveContainer.classList.toggle('hidden'); 
