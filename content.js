@@ -1,24 +1,82 @@
 if (!window.hasAudioAIAgent) {
     window.hasAudioAIAgent = true;
 
+    let nonStopInterval = null;
+    let dialogObserver = null;
+
     function clickSiteButton(selector) {
         const btn = document.querySelector(selector);
         if (btn) { btn.click(); return true; }
         return false;
     }
 
+    function startNonStop() {
+        if (nonStopInterval) return;
+
+        dialogObserver = new MutationObserver((mutations) => {
+            const confirmDialog = document.querySelector('yt-confirm-dialog-renderer');
+            if (confirmDialog && confirmDialog.style.display !== 'none') {
+                const confirmBtn = confirmDialog.querySelector('tp-yt-paper-button.yt-spec-button-shape-next--call-to-action, #confirm-button');
+                if (confirmBtn) confirmBtn.click();
+            }
+        });
+        dialogObserver.observe(document.body, { childList: true, subtree: true });
+
+        nonStopInterval = setInterval(() => {
+            const media = document.querySelector('video, audio');
+            if (media && !media.paused && media.duration > 0) {
+                requestAnimationFrame(() => {
+                    window.scrollBy(0, 1);
+                    requestAnimationFrame(() => window.scrollBy(0, -1));
+                });
+                
+                const neutralElement = document.querySelector('#logo') || document.body;
+                if (neutralElement && typeof neutralElement.focus === 'function') {
+                    const currentFocus = document.activeElement;
+                    neutralElement.focus();
+                    if (currentFocus && typeof currentFocus.focus === 'function') {
+                        currentFocus.focus();
+                    }
+                }
+            }
+        }, 600000);
+    }
+
+    function stopNonStop() {
+        if (nonStopInterval) {
+            clearInterval(nonStopInterval);
+            nonStopInterval = null;
+        }
+        if (dialogObserver) {
+            dialogObserver.disconnect();
+            dialogObserver = null;
+        }
+    }
+
+    chrome.storage.local.get(['isNonStopOn'], (res) => {
+        if (res.isNonStopOn) startNonStop();
+    });
+
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const media = document.querySelector('video, audio');
 
-        if (request.action === 'get_media_info') {
+        if (request.action === 'toggle_non_stop') {
+            if (request.state) startNonStop();
+            else stopNonStop();
+            sendResponse({ status: 'ok' });
+        }
+
+        else if (request.action === 'get_media_info') {
             let title = document.title;
             let artist = window.location.hostname.replace('www.', '');
             let isPlaying = false;
             
+            // CÓDIGO CHAVE: Leitura exclusiva do HTML5 nativo, ignorando o delay visual dos sites
+            let currentVolume = (media && !media.muted) ? media.volume : 0;
             let currentTime = media ? media.currentTime : 0;
             let duration = media ? media.duration : 0;
-            let currentVolume = media ? media.volume : 1;
             let artworkUrl = '';
+            let isLiked = false;
 
             if (media && !media.paused && media.duration > 0) isPlaying = true;
 
@@ -36,39 +94,26 @@ if (!window.hasAudioAIAgent) {
                 if (ytVideoId) artworkUrl = `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`;
             }
 
-            // LEITURA INTELIGENTE (Contorna a Normalização do YouTube)
             if (window.location.hostname.includes('youtube.com')) {
                 try {
-                    let foundVolume = false;
-                    // 1. Tenta ler o slider do YT Music
-                    const ytMusicSlider = document.querySelector('#volume-slider');
-                    if (ytMusicSlider && ytMusicSlider.hasAttribute('value')) {
-                        currentVolume = parseFloat(ytMusicSlider.getAttribute('value')) / 100;
-                        foundVolume = true;
-                    } 
-                    // 2. Tenta ler o painel do YT Normal
-                    if (!foundVolume) {
-                        const ytSlider = document.querySelector('.ytp-volume-panel');
-                        if (ytSlider && ytSlider.hasAttribute('aria-valuenow')) {
-                            currentVolume = parseFloat(ytSlider.getAttribute('aria-valuenow')) / 100;
-                            foundVolume = true;
-                        }
-                    }
-                    // 3. Fallback para a memória
-                    if (!foundVolume) {
-                        const ytVol = window.localStorage.getItem('yt-player-volume');
-                        if (ytVol) {
-                            const parsed = JSON.parse(ytVol);
-                            const volData = JSON.parse(parsed.data);
-                            if (volData && typeof volData.volume === 'number') {
-                                currentVolume = volData.volume / 100;
-                            }
+                    const likeSelectors = [
+                        'ytmusic-like-button-renderer #button-shape-like button',
+                        'ytmusic-like-button-renderer .like',
+                        'like-button-view-model button',
+                        'ytd-menu-renderer ytd-toggle-button-renderer:nth-child(1) button'
+                    ];
+                    
+                    for (let sel of likeSelectors) {
+                        const btn = document.querySelector(sel);
+                        if (btn) {
+                            isLiked = btn.getAttribute('aria-pressed') === 'true' || btn.classList.contains('style-default-active') || btn.classList.contains('active');
+                            break;
                         }
                     }
                 } catch(e) {}
             }
 
-            sendResponse({ title, artist, isPlaying, volume: currentVolume, artwork: artworkUrl, currentTime, duration });
+            sendResponse({ title, artist, isPlaying, volume: currentVolume, artwork: artworkUrl, currentTime, duration, isLiked });
         }
         
         else if (request.action === 'toggle_play') {

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Studio Popout</title>
     <style>
-        /* Variáveis partilhadas com o style.css */
         :root {
             --neu-bg: #f0f0f3; 
             --neu-light: #ffffff;
@@ -38,7 +37,6 @@
             padding: 15px 25px; gap: 25px; box-sizing: border-box; width: 100%;
         }
         
-        /* Moldura da Capa do Álbum (Neumorfismo) */
         .thumbnail-container {
             position: relative; width: 150px; height: 150px; border-radius: 12px; 
             background: var(--neu-bg); border: none;
@@ -72,7 +70,7 @@
 
         .info-container {
             flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0;
-            padding: 15px 0;
+            padding: 15px 0; position: relative;
         }
         
         .track-title { 
@@ -84,25 +82,27 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase;
         }
         
-        /* Controlos (Botões Livres em Neumorfismo) */
         .controls-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 15px; }
         
-        .btn-control, .action-btn { 
+        .btn-control, .action-btn, .sleep-btn { 
             background: var(--neu-bg); border: none; border-radius: 50%; width: 40px; height: 40px;
             cursor: pointer; color: var(--icon-dark); display: flex; align-items: center; justify-content: center; 
             transition: all 0.2s; box-shadow: 4px 4px 8px var(--neu-dark), -4px -4px 8px var(--neu-light);
         }
-        .btn-control:hover, .action-btn:hover { box-shadow: 2px 2px 4px var(--neu-dark), -2px -2px 4px var(--neu-light); color: var(--text-main); transform: scale(1.05); }
-        .btn-control:active, .action-btn:active { box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light); transform: scale(0.95); }
+        .btn-control:hover, .action-btn:hover, .sleep-btn:hover { box-shadow: 2px 2px 4px var(--neu-dark), -2px -2px 4px var(--neu-light); color: var(--text-main); transform: scale(1.05); }
+        .btn-control:active, .action-btn:active, .sleep-btn:active { box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light); transform: scale(0.95); }
 
-        .action-btn.active { color: var(--text-main); box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light); }
+        /* Cores Específicas de Ativação */
+        .action-btn.active { color: #3b82f6; box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light); }
+        #btn-like.active { color: #ef4444; } /* Coração Vermelho */
+        .sleep-btn.active { color: #60a5fa !important; box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light); } /* Botão Sleep Azul Clarinho */
 
-        .action-divider { width: 2px; height: 24px; background: transparent; margin: 0 5px; box-shadow: inset 1px 1px 2px var(--neu-dark), inset -1px -1px 2px var(--neu-light); }
-        
-        /* Sliders Neumórficos no Mini Player */
         .bar-container { display: flex; align-items: center; gap: 10px; width: 100%; }
-        .bar-container.vol { margin-bottom: 10px; justify-content: flex-end; }
+        .bar-container.vol { margin-bottom: 12px; position: relative; }
+        
         .bar-icon, .time-text { color: var(--icon-dark); font-size: 0.75rem; flex-shrink: 0; font-weight: 800; }
+        .btn-mute-icon { cursor: pointer; transition: transform 0.2s ease, color 0.2s ease; }
+        .btn-mute-icon:hover { transform: scale(1.15); color: var(--text-main); }
         
         input[type=range] { 
             -webkit-appearance: none; width: 100%; height: 8px; background: var(--neu-bg); border-radius: 4px; 
@@ -115,99 +115,120 @@
             border: 1px solid #999; box-shadow: 0 2px 4px rgba(0,0,0,0.5); cursor: pointer; margin-top: 0px; 
         }
 
-        /* MODO QUADRADO */
+        .sleep-menu {
+            position: absolute; top: 45px; right: 0; background: var(--neu-bg);
+            border-radius: 12px; box-shadow: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light);
+            padding: 12px; z-index: 9999; width: 195px; display: none; flex-direction: column; gap: 10px;
+        }
+        .sleep-menu.open { display: flex; }
+        .sleep-header { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: flex; flex-direction: column; gap: 5px; border-bottom: 1px solid var(--neu-dark); padding-bottom: 8px; }
+        
+        .sleep-options-row { display: flex; gap: 8px; width: 100%; justify-content: space-between; }
+        
+        .sleep-option-box { 
+            background: var(--neu-bg); border: none; padding: 6px 0; border-radius: 6px; 
+            font-size: 0.75rem; cursor: pointer; color: var(--text-main); font-weight: bold; 
+            box-shadow: 2px 2px 4px var(--neu-dark), -2px -2px 4px var(--neu-light); 
+            transition: all 0.2s; text-align: center; flex: 1; min-width: 0;
+        }
+        .sleep-option-box:hover { box-shadow: 1px 1px 2px var(--neu-dark), -1px -1px 2px var(--neu-light); color: #3b82f6; }
+        .sleep-option-box:active, .sleep-option-box.active { 
+            box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--neu-light); 
+            color: #60a5fa; 
+        }
+        
+        .sleep-option-cancel { 
+            background: var(--neu-bg); border: none; padding: 6px; border-radius: 6px; 
+            font-size: 0.75rem; cursor: pointer; color: #ef4444; font-weight: bold; 
+            box-shadow: 2px 2px 4px var(--neu-dark), -2px -2px 4px var(--neu-light); 
+            transition: all 0.2s; text-align: center; flex: 3; 
+        }
+        .sleep-option-cancel:hover { box-shadow: 1px 1px 2px var(--neu-dark), -1px -1px 2px var(--neu-light); }
+        .sleep-option-cancel:active { box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--neu-light); }
+
+        .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 0.65rem; color: var(--text-main); cursor: pointer; }
+        .checkbox-row input { 
+            appearance: none; -webkit-appearance: none;
+            width: 14px; height: 14px; background: var(--neu-bg);
+            border-radius: 3px; cursor: pointer; position: relative; margin: 0;
+            box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--neu-light);
+            outline: none;
+        }
+        .checkbox-row input:checked::after {
+            content: '✓'; position: absolute;
+            top: -2px; left: 2px; font-size: 11px;
+            color: var(--text-main); font-weight: bold;
+        }
+
         @media (max-width: 400px) {
-            .layout { padding: 0; box-shadow: none; }
-            .info-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 60; pointer-events: none; padding: 0; background: transparent; border: none; box-shadow: none; }
-            .info-container > *:not(.controls-row) { display: none !important; }
-            .controls-row { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; pointer-events: none; display: block; }
-            .controls-row > *:not(#btn-like):not(#btn-back) { display: none !important; }
-            
-            #btn-like, #btn-back {
-                pointer-events: auto; position: absolute;
-                background: rgba(255,255,255,0.2); backdrop-filter: blur(5px);
-                border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                color: #fff; padding: 8px; width: 40px; height: 40px; border-radius: 50%;
-            }
-            #btn-back { top: 12px; left: 12px; }
-            #btn-like { top: 12px; right: 12px; }
-            
-            .thumbnail-container { width: 100vw; height: 100vh; border-radius: 0; border: none; aspect-ratio: 1/1; box-shadow: none; }
-            .thumbnail-container:hover .overlay { background: rgba(0,0,0,0.5); }
-            .overlay.active { background: rgba(0,0,0,0.8); }
+            .thumbnail-container { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
             .btn-control-small { display: block; color: #fff; }
-            #btn-play-pause svg { width: 55px; height: 55px; }
         }
     </style>
 </head>
 <body>
-    
     <div class="layout">
-        <div class="thumbnail-container" id="btn-play-pause" title="Play / Pause">
+        <div class="thumbnail-container" id="btn-play-pause">
             <img id="track-art" src="" alt="Capa">
             <div class="thumbnail-icon" id="thumbnail-icon">🎵</div>
-            
             <div class="overlay" id="play-overlay">
-                <button id="btn-prev-small" class="btn-control-small" title="Anterior">
-                    <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16"><path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.52-.302 1.233.043 1.233.696v7.384c0 .653-.713.998-1.233.696L5 8.752V12a.5.5 0 0 1-1 0V4zm7.5.633L5.696 8l5.804 3.367V4.633z"/></svg>
-                </button>
-                
-                <div>
-                    <svg width="45" height="45" fill="currentColor" viewBox="0 0 16 16">
-                        <path id="play-pause-path" d="M10.804 8 5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"/>
-                    </svg>
-                </div>
-
-                <button id="btn-next-small" class="btn-control-small" title="Próxima">
-                    <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16"><path d="M12 12a.5.5 0 0 1-1 0V8.752L4.733 12.388c-.52.302-1.233-.043-1.233-.696V4.308c0-.653.713-.998 1.233-.696L11 7.248V4a.5.5 0 0 1 1 0v8zM4.5 4.633v6.734L10.304 8 4.5 4.633z"/></svg>
-                </button>
+                <button id="btn-prev-small" class="btn-control-small"><svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16"><path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.52-.302 1.233.043 1.233.696v7.384c0 .653-.713.998-1.233.696L5 8.752V12a.5.5 0 0 1-1 0V4zm7.5.633L5.696 8l5.804 3.367V4.633z"/></svg></button>
+                <svg width="45" height="45" fill="currentColor" viewBox="0 0 16 16"><path id="play-pause-path" d="M10.804 8 5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"/></svg>
+                <button id="btn-next-small" class="btn-control-small"><svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16"><path d="M12 12a.5.5 0 0 1-1 0V8.752L4.733 12.388c-.52.302-1.233-.043-1.233-.696V4.308c0-.653.713-.998 1.233-.696L11 7.248V4a.5.5 0 0 1 1 0v8zM4.5 4.633v6.734L10.304 8 4.5 4.633z"/></svg></button>
             </div>
         </div>
         
         <div class="info-container">
-            
             <div class="bar-container vol">
-                <svg class="bar-icon" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.536 14.01A8.473 8.473 0 0 0 14.026 8a8.473 8.473 0 0 0-2.49-6.01l-.708.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.197 5.303l.708.707z"/><path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89l.706.706z"/><path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.49 3.49 0 0 1 8 10.475l.707.707zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06z"/></svg>
-                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="1" title="Volume">
+                <svg id="btn-mute" class="bar-icon btn-mute-icon" title="Mutar/Desmutar" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M11.536 14.01A8.473 8.473 0 0 0 14.026 8a8.473 8.473 0 0 0-2.49-6.01l-.708.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.197 5.303l.708.707z"/><path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89l.706.706z"/><path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.49 3.49 0 0 1 8 10.475l.707.707zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06z"/>
+                </svg>
+                
+                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="1" style="flex: 1;">
+                
+                <button id="btn-sleep-toggle" class="sleep-btn" title="Sleep Timer" style="width: 34px; height: 34px; margin-left: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="10" cy="14" r="7"></circle>
+                        <polyline points="10 11 10 14 12 14"></polyline>
+                        <path d="M14 4h3l-3 4h3"></path>
+                        <path d="M19 1h2l-2 3h2"></path>
+                    </svg>
+                </button>
+
+                <div id="sleep-menu" class="sleep-menu">
+                    <div class="sleep-header">
+                        <span id="sleep-timer-display">FECHAR A...</span>
+                        <div style="display: flex; gap: 10px;">
+                            <label class="checkbox-row"><input type="checkbox" id="check-close-tab"> Aba</label>
+                            <label class="checkbox-row"><input type="checkbox" id="check-close-win"> Janela</label>
+                        </div>
+                    </div>
+                    
+                    <div class="sleep-options-row">
+                        <button class="sleep-option-box" data-time="20">20</button>
+                        <button class="sleep-option-box" data-time="30">30</button>
+                        <button class="sleep-option-box" data-time="45">45</button>
+                        <button class="sleep-option-box" data-time="60">60</button>
+                    </div>
+                    
+                    <div class="sleep-options-row">
+                        <button class="sleep-option-box" data-time="90">90</button>
+                        <button class="sleep-option-cancel" id="btn-cancel-sleep">Desativar</button>
+                    </div>
+                </div>
             </div>
 
-            <div class="track-title" id="track-title">Carregando mídia...</div>
+            <div class="track-title" id="track-title">Carregando...</div>
             <div class="track-artist" id="track-domain">Aguarde...</div>
             
             <div class="controls-row">
-                <button id="btn-prev" class="btn-control" title="Anterior">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.52-.302 1.233.043 1.233.696v7.384c0 .653-.713.998-1.233.696L5 8.752V12a.5.5 0 0 1-1 0V4zm7.5.633L5.696 8l5.804 3.367V4.633z"/></svg>
-                </button>
-                <button id="btn-minus-10" class="btn-control" title="Voltar 10s">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
-                        <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
-                        <text x="8" y="11" font-size="5" text-anchor="middle" font-weight="bold" fill="currentColor">10</text>
-                    </svg>
-                </button>
-                <button id="btn-plus-10" class="btn-control" title="Avançar 10s">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                        <text x="8" y="11" font-size="5" text-anchor="middle" font-weight="bold" fill="currentColor">10</text>
-                    </svg>
-                </button>
-                <button id="btn-next" class="btn-control" title="Próxima">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M12 12a.5.5 0 0 1-1 0V8.752L4.733 12.388c-.52.302-1.233-.043-1.233-.696V4.308c0-.653.713-.998 1.233-.696L11 7.248V4a.5.5 0 0 1 1 0v8zM4.5 4.633v6.734L10.304 8 4.5 4.633z"/></svg>
-                </button>
-
+                <button id="btn-prev" class="btn-control"><svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.52-.302 1.233.043 1.233.696v7.384c0 .653-.713.998-1.233.696L5 8.752V12a.5.5 0 0 1-1 0V4zm7.5.633L5.696 8l5.804 3.367V4.633z"/></svg></button>
+                <button id="btn-minus-10" class="btn-control"><svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/><text x="8" y="11" font-size="5" text-anchor="middle" font-weight="bold" fill="currentColor">10</text></svg></button>
+                <button id="btn-plus-10" class="btn-control"><svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/><text x="8" y="11" font-size="5" text-anchor="middle" font-weight="bold" fill="currentColor">10</text></svg></button>
+                <button id="btn-next" class="btn-control"><svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M12 12a.5.5 0 0 1-1 0V8.752L4.733 12.388c-.52.302-1.233-.043-1.233-.696V4.308c0-.653.713-.998 1.233-.696L11 7.248V4a.5.5 0 0 1 1 0v8zM4.5 4.633v6.734L10.304 8 4.5 4.633z"/></svg></button>
                 <div class="action-divider"></div>
-                
-                <button id="btn-like" class="action-btn" title="Gostar">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                        <path id="like-path" d="m8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
-                    </svg>
-                </button>
-                <button id="btn-back" class="action-btn" title="Voltar para a Aba Original">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm11.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5h-2zM4.5 9a.5.5 0 0 0 0-1H3a.5.5 0 0 0 0 1h1.5z"/>
-                    </svg>
-                </button>
+                <button id="btn-like" class="action-btn"><svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path id="like-path" d="m8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/></svg></button>
+                <button id="btn-back" class="action-btn"><svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm11.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5h-2zM4.5 9a.5.5 0 0 0 0-1H3a.5.5 0 0 0 0 1h1.5z"/></svg></button>
             </div>
             
             <div class="bar-container time">
@@ -215,10 +236,8 @@
                 <input type="range" id="time-slider" min="0" max="100" step="1" value="0">
                 <span class="time-text" id="time-total">0:00</span>
             </div>
-            
         </div>
     </div>
-    
     <script src="miniplayer.js"></script>
 </body>
 </html>

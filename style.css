@@ -227,7 +227,7 @@ textarea#ai-input { resize: none; overflow-y: hidden; min-height: 40px; line-hei
 /* Favoritos */
 .favorites-bar { display: flex; gap: 10px; margin-bottom: 8px; }
 .btn-fav { 
-    flex: 1; padding: 8px; border-radius: 8px; border: none; background: var(--neu-bg);
+    flex: 1 1 calc(33.333% - 10px); padding: 8px; border-radius: 8px; border: none; background: var(--neu-bg);
     box-shadow: 4px 4px 8px var(--neu-dark), -4px -4px 8px var(--neu-light);
     font-size: 0.75rem; text-align: center; cursor: pointer; font-weight: 700; color: var(--icon-dark); transition: all 0.2s ease;
 }
@@ -287,7 +287,6 @@ hr { border: none; height: 2px; background: transparent; margin: 20px 0; box-sha
 .btn-mic:hover { color: var(--text-main); transform: scale(1.1); }
 .btn-mic.recording { color: var(--text-main); animation: pulse 1.5s infinite; }
 .status-text { font-size: 0.75rem; margin-top: 5px; }
-
 #modal-overlay, #permission-overlay, #info-modal-overlay, #download-modal-overlay { 
     position: fixed; 
     top: 0; left: 0; width: 100%; height: 100%; z-index: 200; 
@@ -297,6 +296,34 @@ hr { border: none; height: 2px; background: transparent; margin: 20px 0; box-sha
 .modal-content { background: var(--neu-bg); padding: 20px; border-radius: 15px; border: none; width: 90%; max-height: 90%; display: flex; flex-direction: column; box-shadow: 10px 10px 20px var(--neu-dark), -10px -10px 20px var(--neu-light); }
 #save-preset-container { background: var(--neu-bg); padding: 15px; border-radius: 15px; border: none; box-shadow: 5px 5px 10px var(--neu-dark), -5px -5px 10px var(--neu-light); margin-bottom: 15px; }
 .modal-header { font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(128,128,128,0.1); color: var(--text-main); }
+
+/* --- Accordion Custom Scroll e Estilos do Modal de Curvas --- */
+.scrollable-area {
+    overflow-y: auto; flex: 1; padding-right: 5px;
+}
+.scrollable-area::-webkit-scrollbar { width: 6px; }
+.scrollable-area::-webkit-scrollbar-track { background: var(--neu-bg); border-radius: 4px; box-shadow: inset 1px 1px 3px var(--neu-dark); }
+.scrollable-area::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+
+.accordion-header {
+    width: 100%; text-align: left; background: var(--neu-bg); border: none; padding: 12px 10px; margin-bottom: 8px;
+    border-radius: 10px; font-size: 0.8rem; font-weight: bold; color: var(--text-main); cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 4px 4px 8px var(--neu-dark), -4px -4px 8px var(--neu-light); transition: all 0.2s;
+}
+.accordion-header:hover { color: var(--text-main); box-shadow: 2px 2px 4px var(--neu-dark), -2px -2px 4px var(--neu-light); }
+.accordion-header:active { box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light); }
+.accordion-header span { font-size: 0.6rem; color: var(--text-muted); transition: transform 0.3s; }
+.accordion-header.active span { transform: rotate(180deg); }
+
+.accordion-content {
+    padding: 5px 10px 15px 10px; margin-bottom: 5px; border-left: 2px solid var(--text-muted); margin-left: 5px;
+}
+
+.curves-text-container h4 { font-size: 0.85rem; margin-top: 10px; margin-bottom: 2px; color: var(--text-main); }
+.curves-text-container p { color: var(--text-muted); margin-bottom: 8px; font-size: 0.8rem; }
+.curves-text-container strong { color: var(--icon-dark); }
+body.dark-mode .curves-text-container strong { color: #e5e7eb; }
 
 /* --- ESTILOS LIMPOS DOS MODAIS DE EDIÇÃO E EXCLUSÃO --- */
 #modal-list { 
@@ -328,10 +355,10 @@ hr { border: none; height: 2px; background: transparent; margin: 20px 0; box-sha
     border: none !important;
     color: var(--text-muted);
     padding: 0 !important;
-    margin: 0;
+    margin: 0 !important;
     width: 16px !important;  
     height: 16px !important; 
-    min-width: 16px !important; 
+    min-width: 16px !important; /* Impede esmagamento */
     cursor: pointer;
     display: flex;
     align-items: center;

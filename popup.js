@@ -12,7 +12,8 @@ const i18nDict = {
         ai_cmd: "Comando com IA ou Voz", new_curve: "Nova curva", btn_ai: "Ajustar com IA", ai_sleep: "🤖 A Inteligência Artificial está adormecida.", apply_key: "Aplicar Chave da API",
         preset_flat: "Padrão (Flat)", system_default: "Padrão do Sistema", none_out: "Nenhuma", menu_move: "Mover (Ordem)", menu_edit: "Editar Nomes", menu_del: "Excluir Presets",
         ai_placeholder: "Ex: Deixe os graves mais fortes...", my_presets: "Meus Presets", ready_presets: "Presets Prontos",
-        dl_title: "Opções de Download", dl_current: "Preset Atual", dl_batch: "Em Lote", dl_selected: "Baixar Selecionados", btn_cancel: "Cancelar"
+        dl_title: "Opções de Download", dl_current: "Preset Atual", dl_batch: "Em Lote", dl_selected: "Baixar Selecionados", btn_cancel: "Cancelar",
+        curves_mode: "Curvas", btn_curves_guide: "Guia de Curvas", curves_guide_title: "Guia de Curvas", btn_back: "Voltar"
     },
     'en': {
         welcome: "Welcome to Studio!", step1_title: "1. Mic & Outputs 🎙️", step1_desc: "Required to read audio from tabs, PC devices, and Voice commands.",
@@ -26,7 +27,8 @@ const i18nDict = {
         ai_cmd: "AI or Voice Command", new_curve: "New curve", btn_ai: "Adjust with AI", ai_sleep: "🤖 Artificial Intelligence is asleep.", apply_key: "Apply API Key",
         preset_flat: "Default (Flat)", system_default: "System Default", none_out: "None", menu_move: "Move (Order)", menu_edit: "Edit Names", menu_del: "Delete Presets",
         ai_placeholder: "Ex: Make the bass stronger...", my_presets: "My Presets", ready_presets: "Built-in Presets",
-        dl_title: "Download Options", dl_current: "Current Preset", dl_batch: "Batch Download", dl_selected: "Download Selected", btn_cancel: "Cancel"
+        dl_title: "Download Options", dl_current: "Current Preset", dl_batch: "Batch Download", dl_selected: "Download Selected", btn_cancel: "Cancel",
+        curves_mode: "Curves", btn_curves_guide: "Curves Guide", curves_guide_title: "Curves Guide", btn_back: "Back"
     }
 };
 
@@ -92,10 +94,10 @@ function markAsModified() {
         proposedName = `${cleanBase} - ${suffix}`;
     }
 
-    getStorageData((custom, order, favs) => {
+    getStorageData((custom, order, favs, favsCurves) => {
         let finalName = proposedName;
         let count = 1;
-        while (custom[finalName] || defaultPresets[finalName]) {
+        while (custom[finalName] || defaultPresets[finalName] || curvesPresets[finalName]) {
              finalName = `${proposedName} ${count}`;
              count++;
         }
@@ -237,6 +239,11 @@ const btnInfo = document.getElementById('btn-info');
 const infoModalOverlay = document.getElementById('info-modal-overlay');
 const btnCloseInfo = document.getElementById('btn-close-info');
 
+// Modal Guia Curvas
+const curvesModalOverlay = document.getElementById('curves-modal-overlay');
+const btnOpenCurvesInfo = document.getElementById('btn-open-curves-info');
+const btnCloseCurvesInfo = document.getElementById('btn-close-curves-info');
+
 const canvas = document.getElementById('eqGraph');
 const ctx = canvas.getContext('2d');
 const aiInput = document.getElementById('ai-input');
@@ -256,6 +263,9 @@ const modalOverlay = document.getElementById('modal-overlay');
 const modalTitle = document.getElementById('modal-title');
 const modalList = document.getElementById('modal-list');
 const btnModalClose = document.getElementById('btn-modal-close');
+
+const curvesModeSwitch = document.getElementById('curves-mode-switch');
+let isCurvesMode = false;
 
 let currentTabId = null;
 let currentSelectedPresetKey = 'Padrao'; 
@@ -282,6 +292,28 @@ if (btnMiniplayer) {
 
 if (btnInfo) { btnInfo.addEventListener('click', () => { infoModalOverlay.classList.remove('hidden'); }); }
 if (btnCloseInfo) { btnCloseInfo.addEventListener('click', () => { infoModalOverlay.classList.add('hidden'); }); }
+
+// Lógica do Accordion
+const accordionHeaders = document.querySelectorAll('.accordion-header');
+accordionHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+        header.classList.toggle('active');
+        const content = header.nextElementSibling;
+        content.classList.toggle('hidden');
+    });
+});
+
+if (btnOpenCurvesInfo) {
+    btnOpenCurvesInfo.addEventListener('click', () => {
+        infoModalOverlay.classList.add('hidden');
+        curvesModalOverlay.classList.remove('hidden');
+    });
+}
+if (btnCloseCurvesInfo) {
+    btnCloseCurvesInfo.addEventListener('click', () => {
+        curvesModalOverlay.classList.add('hidden');
+    });
+}
 
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0] && !tabs[0].url.startsWith('chrome://')) {
@@ -368,6 +400,7 @@ function buildSliders() {
         lbl.textContent = freq >= 1000 ? (freq/1000) + 'k' : freq;
 
         input.addEventListener('input', (e) => {
+            // isIsolated = true -> Arrasto (Drag) = Q estreito (2.0)
             handleSliderChange(freq, parseFloat(e.target.value), true);
             input.dataset.userModified = 'true'; 
         });
@@ -385,6 +418,7 @@ function buildSliders() {
             input.value = newVal;
             input.dataset.userModified = 'true';
             
+            // isIsolated = false -> Scroll = Q largo (0.5)
             handleSliderChange(freq, newVal, false);
             
             clearTimeout(window.sliderWheelTimeout);
@@ -408,7 +442,7 @@ function buildSliders() {
 
 function handleSliderChange(freq, value, isIsolated = false) {
     let pt = eqPoints.find(p => Math.abs(p.f - freq) < (freq * 0.05));
-    let targetQ = isIsolated ? 2.0 : 0.5; 
+    let targetQ = isIsolated ? 10.0 : 2.0; 
     
     if (pt) { 
         pt.g = value; 
@@ -502,22 +536,92 @@ const presetIcons = {
     'Piano': '🎹', 'Pop Rock': '🎤', 'R&B': '🤎', 'Rock': '🤘', 'Treble Booster': '🔊', 'Vocal': '🗣️' 
 };
 
+// Novos Presets de Curvas (Targets e Normas)
+const curvesPresets = {
+    // 1. Psicoacústica
+    'Fletcher-Munson (Loudness)': [{f:40,g:5,q:0.8},{f:100,g:3,q:1.0},{f:1000,g:0,q:1.5},{f:3000,g:-2,q:2.0},{f:10000,g:4,q:1.0}],
+    'ISO 226 (Isofonia)': [{f:30,g:6,q:0.7},{f:80,g:4,q:0.9},{f:1000,g:0,q:1.2},{f:3500,g:-3,q:1.8},{f:12000,g:5,q:1.2}],
+    
+    // 2. Medição
+    'A-Weighting (dBA)': [{f:31,g:-15,q:0.5},{f:63,g:-10,q:0.5},{f:125,g:-6,q:0.8},{f:250,g:-3,q:1.0},{f:1000,g:0,q:1.5},{f:2500,g:1,q:2.0},{f:8000,g:-1,q:1.0},{f:16000,g:-6,q:0.5}],
+    'C-Weighting (dBC)': [{f:31,g:-3,q:1.0},{f:125,g:0,q:1.5},{f:1000,g:0,q:1.5},{f:8000,g:-3,q:1.0},{f:16000,g:-8,q:0.8}],
+
+    // 3. Mídia e Cinema
+    'RIAA (Vinil Playback)': [{f:30,g:15,q:0.5},{f:500,g:0,q:1.0},{f:2120,g:-5,q:1.0},{f:10000,g:-13,q:0.5}],
+    'X-Curve (Cinema ISO 2969)': [{f:63,g:0,q:1.5},{f:2000,g:0,q:1.5},{f:8000,g:-5,q:0.5},{f:16000,g:-10,q:0.5}],
+    'Academy Curve (Old Cinema)': [{f:40,g:-15,q:0.8},{f:100,g:-5,q:1.5},{f:1000,g:0,q:1.5},{f:8000,g:-10,q:0.8},{f:12000,g:-15,q:0.5}],
+    'NAB (Fita Tape)': [{f:50,g:8,q:0.8},{f:400,g:0,q:1.5},{f:3180,g:-5,q:1.0},{f:15000,g:-12,q:0.5}],
+    
+    // 4. Acústica de Sala
+    'B&K 1974 Optimum Room': [{f:20,g:3,q:0.5},{f:200,g:0,q:1.5},{f:1000,g:0,q:1.5},{f:10000,g:-3,q:0.5}],
+
+    // 5. Fones e In-Ears
+    'Harman Target 2019': [{f:40,g:6,q:0.7},{f:200,g:0,q:1.5},{f:1000,g:0,q:1.5},{f:3000,g:8,q:2.0},{f:8000,g:3,q:1.5},{f:15000,g:-2,q:1.0}],
+    'Diffuse Field': [{f:50,g:0,q:1.0},{f:1000,g:0,q:1.5},{f:3000,g:12,q:2.5},{f:8000,g:5,q:1.5},{f:15000,g:-5,q:0.5}],
+    'IEF Neutral Target': [{f:20,g:0,q:1.0},{f:1000,g:0,q:1.5},{f:3000,g:7,q:2.0},{f:6000,g:2,q:1.5},{f:12000,g:-1,q:1.0}],
+    'Moondrop VDSF Target': [{f:40,g:5,q:0.8},{f:250,g:0,q:1.5},{f:1000,g:0,q:1.5},{f:3000,g:6,q:2.0},{f:5000,g:3,q:1.5},{f:12000,g:0,q:1.0}],
+    'JM-1 Target': [{f:40,g:5,q:0.8},{f:300,g:2,q:1.0},{f:1000,g:0,q:1.5},{f:3000,g:5,q:2.0},{f:6000,g:2,q:1.5},{f:10000,g:0,q:1.0}],
+    'Etymotic Target': [{f:50,g:0,q:1.0},{f:1000,g:0,q:1.5},{f:2700,g:14,q:3.0},{f:8000,g:4,q:1.5},{f:16000,g:-8,q:0.5}],
+
+    // 6. Exemplos IEMs Budget
+    'Moondrop Chu (Simulação)': [{f:40,g:2,q:1.0},{f:250,g:-1,q:1.5},{f:3000,g:7,q:2.0},{f:5000,g:4,q:1.5},{f:10000,g:2,q:1.0}],
+    '7Hz Salnotes Zero (Simulação)': [{f:30,g:5,q:0.8},{f:200,g:-1,q:1.5},{f:3000,g:6,q:2.0},{f:6000,g:2,q:1.5},{f:12000,g:0,q:1.0}],
+    'Truthear ZERO Blue (Simulação)': [{f:40,g:8,q:0.7},{f:200,g:-2,q:1.5},{f:3000,g:8,q:2.0},{f:8000,g:4,q:1.5},{f:15000,g:-2,q:1.0}],
+    'Tangzu Waner (Simulação)': [{f:50,g:4,q:0.9},{f:300,g:2,q:1.2},{f:3000,g:5,q:2.0},{f:6000,g:1,q:1.5},{f:10000,g:-1,q:1.0}]
+};
+
+const curvesIcons = {
+    'Fletcher-Munson (Loudness)': '👂', 'ISO 226 (Isofonia)': '🌐', 'A-Weighting (dBA)': '⚖️', 'C-Weighting (dBC)': '🏭',
+    'RIAA (Vinil Playback)': '💿', 'X-Curve (Cinema ISO 2969)': '🎬', 'Academy Curve (Old Cinema)': '🎞️', 'NAB (Fita Tape)': '📼',
+    'B&K 1974 Optimum Room': '🛋️', 'Harman Target 2019': '🎧', 'Diffuse Field': '📐', 'IEF Neutral Target': '📏',
+    'Moondrop VDSF Target': '✨', 'JM-1 Target': '🔥', 'Etymotic Target': '🔬',
+    'Moondrop Chu (Simulação)': '🎋', '7Hz Salnotes Zero (Simulação)': '0️⃣', 'Truthear ZERO Blue (Simulação)': '🔵', 'Tangzu Waner (Simulação)': '📜'
+};
+
+const curvesGroups = {
+    'Psicoacústica': ['Fletcher-Munson (Loudness)', 'ISO 226 (Isofonia)'],
+    'Medição': ['A-Weighting (dBA)', 'C-Weighting (dBC)'],
+    'Mídia e Cinema': ['RIAA (Vinil Playback)', 'X-Curve (Cinema ISO 2969)', 'Academy Curve (Old Cinema)', 'NAB (Fita Tape)'],
+    'Acústica': ['B&K 1974 Optimum Room'],
+    'Fones Target': ['Harman Target 2019', 'Diffuse Field', 'IEF Neutral Target', 'Moondrop VDSF Target', 'JM-1 Target', 'Etymotic Target'],
+    'IEMs Budget': ['Moondrop Chu (Simulação)', '7Hz Salnotes Zero (Simulação)', 'Truthear ZERO Blue (Simulação)', 'Tangzu Waner (Simulação)']
+};
+
 function getStorageData(callback) {
-    chrome.storage.local.get(['customPresets', 'customOrder', 'favorites'], (res) => {
-        let custom = res.customPresets || {}; let order = res.customOrder || Object.keys(custom); let favs = res.favorites || [];
+    chrome.storage.local.get(['customPresets', 'customOrder', 'favorites', 'favoritesCurves'], (res) => {
+        let custom = res.customPresets || {}; 
+        let order = res.customOrder || Object.keys(custom); 
+        let favs = res.favorites || [];
+        let favsCurves = res.favoritesCurves || [];
         order = order.filter(k => custom[k]); Object.keys(custom).forEach(k => { if(!order.includes(k)) order.push(k); });
-        callback(custom, order, favs);
+        callback(custom, order, favs, favsCurves);
     });
 }
-function saveStorageData(custom, order, favs, callback) { chrome.storage.local.set({ customPresets: custom, customOrder: order, favorites: favs }, callback); }
 
-function renderUI() { getStorageData((custom, order, favs) => { renderFavoritesBar(favs); renderDropdownList(custom, order, favs); updateTriggerText(); }); }
+function saveStorageData(custom, order, favs, callback) { 
+    getStorageData((_, __, ___, favsCurves) => {
+        if(isCurvesMode) {
+            chrome.storage.local.set({ customPresets: custom, customOrder: order, favoritesCurves: favs }, callback);
+        } else {
+            chrome.storage.local.set({ customPresets: custom, customOrder: order, favorites: favs }, callback);
+        }
+    });
+}
 
-function renderFavoritesBar(favs) {
+function renderUI() { 
+    getStorageData((custom, order, favs, favsCurves) => { 
+        const activeFavs = isCurvesMode ? favsCurves : favs;
+        renderFavoritesBar(activeFavs); 
+        renderDropdownList(custom, order, activeFavs); 
+        updateTriggerText(); 
+    }); 
+}
+
+function renderFavoritesBar(activeFavs) {
     favBar.innerHTML = '';
-    if (favs.length === 0) { favBar.classList.add('hidden'); return; }
+    if (activeFavs.length === 0) { favBar.classList.add('hidden'); return; }
     favBar.classList.remove('hidden');
-    favs.forEach(favKey => {
+    activeFavs.forEach(favKey => {
         const btn = document.createElement('button'); const isActive = (currentSelectedPresetKey === favKey);
         btn.className = `btn-fav ${isActive ? 'active' : ''}`; btn.textContent = favKey.replace('custom_', '');
         btn.onclick = () => { if (isActive) applyPreset('Padrao'); else applyPreset(favKey); renderUI(); };
@@ -525,11 +629,11 @@ function renderFavoritesBar(favs) {
     });
 }
 
-function renderDropdownList(custom, order, favs) {
+function renderDropdownList(custom, order, activeFavs) {
     presetOptions.innerHTML = '';
     const createItem = (key, displayName, icon) => {
         const div = document.createElement('div'); div.className = 'custom-option';
-        const isFav = favs.includes(key);
+        const isFav = activeFavs.includes(key);
         const starHtml = key === 'Padrao' ? `<div style="width: 44px;"></div>` : `<div class="star-btn-container"><button class="star-btn ${isFav ? 'active' : ''}">${isFav ? '★' : '☆'}</button></div>`;
         
         let translatedName = displayName;
@@ -537,7 +641,7 @@ function renderDropdownList(custom, order, favs) {
         
         div.innerHTML = `<div class="preset-info"><span class="preset-icon monochrome-icon">${icon}</span> <span>${translatedName}</span></div>${starHtml}`;
         div.querySelector('.preset-info').addEventListener('click', () => { selectPresetFromDropdown(key); });
-        if (key !== 'Padrao') { div.querySelector('.star-btn-container').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(key, favs, custom, order); }); }
+        if (key !== 'Padrao') { div.querySelector('.star-btn-container').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(key, activeFavs, custom, order); }); }
         presetOptions.appendChild(div);
     };
 
@@ -557,20 +661,39 @@ function renderDropdownList(custom, order, favs) {
         });
     }
 
-    const divSep2 = document.createElement('div');
-    const headerTextReady = i18nDict[currentLang] ? i18nDict[currentLang].ready_presets : 'Presets Prontos';
-    divSep2.innerHTML = `<div class="preset-divider"></div><div class="preset-group-header">${headerTextReady}</div>`;
-    presetOptions.appendChild(divSep2);
+    if (isCurvesMode) {
+        Object.keys(curvesGroups).forEach(groupName => {
+            const divSep = document.createElement('div');
+            divSep.innerHTML = `<div class="preset-divider"></div><div class="preset-group-header">${groupName}</div>`;
+            presetOptions.appendChild(divSep);
+            
+            curvesGroups[groupName].forEach(key => {
+                createItem(key, key, curvesIcons[key] || '📈');
+            });
+        });
+    } else {
+        const divSep2 = document.createElement('div');
+        const headerTextReady = i18nDict[currentLang] ? i18nDict[currentLang].ready_presets : 'Presets Prontos';
+        divSep2.innerHTML = `<div class="preset-divider"></div><div class="preset-group-header">${headerTextReady}</div>`;
+        presetOptions.appendChild(divSep2);
 
-    Object.keys(defaultPresets).forEach(key => { 
-        if (key !== 'Padrao') createItem(key, key, presetIcons[key] || '🎵'); 
-    });
+        Object.keys(defaultPresets).forEach(key => { 
+            if (key !== 'Padrao') createItem(key, key, presetIcons[key] || '🎵'); 
+        });
+    }
 }
 
-function toggleFavorite(key, favs, custom, order) {
-    if (favs.includes(key)) favs = favs.filter(f => f !== key);
-    else { if (favs.length >= 3) { alert("Pode ter no máximo 3 favoritos!"); return; } favs.push(key); }
-    saveStorageData(custom, order, favs, renderUI);
+function toggleFavorite(key, activeFavs, custom, order) {
+    if (activeFavs.includes(key)) {
+        activeFavs = activeFavs.filter(f => f !== key);
+    } else { 
+        if (activeFavs.length >= 6) { 
+            alert(currentLang === 'pt-br' ? "Pode ter no máximo 6 favoritos!" : "You can have a maximum of 6 favorites!"); 
+            return; 
+        } 
+        activeFavs.push(key); 
+    }
+    saveStorageData(custom, order, activeFavs, renderUI);
 }
 
 function selectPresetFromDropdown(key) { presetOptions.classList.remove('open'); applyPreset(key); renderUI(); }
@@ -583,7 +706,12 @@ function applyPreset(key) {
         const name = key.replace('custom_', '');
         getStorageData((custom) => { if(custom[name]) { eqPoints = Array.isArray(custom[name]) ? custom[name] : custom[name].points; sendPointsToEngine(true); saveHistoryState(eqPoints); } });
     } else {
-        eqPoints = JSON.parse(JSON.stringify(defaultPresets[key])); sendPointsToEngine(true); saveHistoryState(eqPoints);
+        const targetList = isCurvesMode && curvesPresets[key] ? curvesPresets : defaultPresets;
+        if(targetList[key]) {
+            eqPoints = JSON.parse(JSON.stringify(targetList[key])); sendPointsToEngine(true); saveHistoryState(eqPoints);
+        } else {
+            eqPoints = []; sendPointsToEngine(true); saveHistoryState(eqPoints);
+        }
     }
 }
 
@@ -598,23 +726,31 @@ function updateTriggerText() {
     presetTriggerText.textContent = name; 
 }
 
+curvesModeSwitch.addEventListener('change', (e) => {
+    isCurvesMode = e.target.checked;
+    applyPreset('Padrao');
+    renderUI();
+});
+
 presetTrigger.addEventListener('click', () => presetOptions.classList.toggle('open'));
 btnDots.addEventListener('click', () => dotsDropdown.classList.toggle('hidden'));
 document.addEventListener('click', (e) => { if (!e.target.closest('.custom-select-container')) presetOptions.classList.remove('open'); if (!e.target.closest('.dots-container')) dotsDropdown.classList.add('hidden'); });
 
 function openModal(mode) {
-    getStorageData((custom, order, favs) => {
+    getStorageData((custom, order, favs, favsCurves) => {
         modalList.innerHTML = ''; modalOverlay.classList.remove('hidden'); modalOverlay.style.display = 'flex';
         if (order.length === 0) { modalTitle.textContent = i18nDict[currentLang].modal_manage; modalList.innerHTML = `<div style="text-align:center; padding: 25px 10px; color: var(--text-muted); font-size: 0.9rem;">Nenhum preset encontrado.</div>`; return; }
         
+        let activeFavs = isCurvesMode ? favsCurves : favs;
+
         if (mode === 'move') {
             modalTitle.textContent = i18nDict[currentLang].menu_move;
             order.forEach((key, idx) => {
                 const div = document.createElement('div'); div.className = 'modal-item';
                 div.innerHTML = `<span>${key}</span><div class="modal-actions"><button class="modal-btn" ${idx===0 ? 'disabled':''}>↑</button><button class="modal-btn" ${idx===order.length-1 ? 'disabled':''}>↓</button></div>`;
                 const btns = div.querySelectorAll('.modal-btn');
-                btns[0].onclick = () => { [order[idx], order[idx-1]] = [order[idx-1], order[idx]]; saveStorageData(custom, order, favs, () => openModal('move')); };
-                btns[1].onclick = () => { [order[idx], order[idx+1]] = [order[idx+1], order[idx]]; saveStorageData(custom, order, favs, () => openModal('move')); };
+                btns[0].onclick = () => { [order[idx], order[idx-1]] = [order[idx-1], order[idx]]; saveStorageData(custom, order, activeFavs, () => openModal('move')); };
+                btns[1].onclick = () => { [order[idx], order[idx+1]] = [order[idx+1], order[idx]]; saveStorageData(custom, order, activeFavs, () => openModal('move')); };
                 modalList.appendChild(div);
             });
         }
@@ -632,9 +768,9 @@ function openModal(mode) {
                     const newKey = div.querySelector('input').value.trim();
                     if (!newKey || newKey === key || custom[newKey]) return;
                     custom[newKey] = custom[key]; delete custom[key]; order[order.indexOf(key)] = newKey;
-                    if (favs.includes(`custom_${key}`)) favs[favs.indexOf(`custom_${key}`)] = `custom_${newKey}`;
+                    if (activeFavs.includes(`custom_${key}`)) activeFavs[activeFavs.indexOf(`custom_${key}`)] = `custom_${newKey}`;
                     if (currentSelectedPresetKey === `custom_${key}`) currentSelectedPresetKey = `custom_${newKey}`;
-                    saveStorageData(custom, order, favs, () => openModal('edit'));
+                    saveStorageData(custom, order, activeFavs, () => openModal('edit'));
                 };
                 modalList.appendChild(div);
             });
@@ -650,9 +786,9 @@ function openModal(mode) {
                     </button>
                 `;
                 div.querySelector('.modal-icon-btn').onclick = () => {
-                    delete custom[key]; order = order.filter(k => k !== key); favs = favs.filter(f => f !== `custom_${key}`);
+                    delete custom[key]; order = order.filter(k => k !== key); activeFavs = activeFavs.filter(f => f !== `custom_${key}`);
                     if (currentSelectedPresetKey === `custom_${key}`) applyPreset('Padrao');
-                    saveStorageData(custom, order, favs, () => openModal('delete'));
+                    saveStorageData(custom, order, activeFavs, () => openModal('delete'));
                 };
                 modalList.appendChild(div);
             });
@@ -955,104 +1091,79 @@ chrome.runtime.onMessage.addListener((message) => {
 
 animationLoop();
 
-// --- NOVO SISTEMA BOOSTER (ARRASTO CIRCULAR RELATIVO / SENSÍVEL) ---
+// --- Booster ---
 let isKnobDragging = false; 
 let currentBoosterVal = 100;
-let exactBoosterVal = 100; // Guarda os decimais para movimento ultra-suave
-let lastAngle = 0;
+let lastKnobAngle = null;
 
 function setKnobValue(vol) {
-    currentBoosterVal = Math.max(100, Math.min(300, vol)); 
-    boosterValueDisplay.textContent = `${currentBoosterVal}%`;
-    const percent = (currentBoosterVal - 100) / 200; 
-    const angle = percent * 270; 
-    boosterKnobWrapper.style.setProperty('--fill-angle', `${angle}deg`); 
-    boosterKnob.style.transform = `rotate(calc(-135deg + ${angle}deg))`;
+    currentBoosterVal = Math.max(100, Math.min(300, vol)); boosterValueDisplay.textContent = `${currentBoosterVal}%`;
+    const percent = (currentBoosterVal - 100) / 200; const angle = percent * 270; 
+    boosterKnobWrapper.style.setProperty('--fill-angle', `${angle}deg`); boosterKnob.style.transform = `rotate(calc(-135deg + ${angle}deg))`;
 }
 
 function handleKnobDrag(e) {
     if (!isKnobDragging) return; 
+    
+    // Trava de segurança: Se o mouse mover mas nenhum botão estiver clicado (ex: o clique soltou fora da janela) abortar.
+    if (e.buttons === 0) {
+        isKnobDragging = false;
+        lastKnobAngle = null;
+        return;
+    }
 
     const rect = boosterKnobWrapper.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2; 
     const centerY = rect.top + rect.height / 2;
-
-    const deltaX = e.clientX - centerX;
-    const deltaY = e.clientY - centerY;
-
-    // Deadzone de 10px no centro (evita saltos se o mouse passar exatamente no meio)
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    if (distance < 10) return;
-
-    let currentAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-    let deltaAngle = currentAngle - lastAngle;
-
-    // Corrige a inversão brusca quando o mouse cruza a linha de -180 para +180
-    if (deltaAngle > 180) deltaAngle -= 360;
-    else if (deltaAngle < -180) deltaAngle += 360;
-
-    lastAngle = currentAngle;
-
-    // A MÁGICA DA SENSIBILIDADE: 0.3 significa 30% da velocidade original.
-    // Isso torna a válvula pesada e requer um movimento maior para preencher o volume.
-    const sensitivity = 0.3; 
     
-    // Converte os graus girados para os pontos de volume (são 200 pontos divididos em 270 graus do desenho)
-    const volPointsPerDegree = 200 / 270;
-    const deltaVol = deltaAngle * volPointsPerDegree * sensitivity;
-
-    // Acumula o valor incluindo os decimais (movimento fluído)
-    exactBoosterVal += deltaVol;
-
-    // Trava física do volume (100 a 300)
-    if (exactBoosterVal < 100) exactBoosterVal = 100;
-    if (exactBoosterVal > 300) exactBoosterVal = 300;
-
-    const newVol = Math.round(exactBoosterVal);
+    let currentMouseAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
     
-    // Atualiza a UI e a engine apenas se o número real arredondado mudar
-    if (newVol !== currentBoosterVal) {
-        setKnobValue(newVol); 
-        sendToEngine({ action: 'set_booster', volume: currentBoosterVal });
+    if (lastKnobAngle !== null) {
+        let delta = currentMouseAngle - lastKnobAngle;
+        
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        
+        // Multiplicador de sensibilidade (0.5 = 50% mais devagar e macio)
+        const sensitivity = 0.5;
+        
+        let currentUIAngle = ((currentBoosterVal - 100) / 200) * 270 - 135;
+        let newUIAngle = currentUIAngle + (delta * sensitivity);
+        
+        if (newUIAngle < -135) newUIAngle = -135;
+        if (newUIAngle > 135) newUIAngle = 135;
+        
+        const percent = (newUIAngle + 135) / 270; 
+        const newVol = Math.round(100 + (percent * 200));
+        
+        if (newVol !== currentBoosterVal) {
+            setKnobValue(newVol); 
+            sendToEngine({ action: 'set_booster', volume: currentBoosterVal });
+        }
     }
-}
-
-function stopKnobDrag() {
-    if (isKnobDragging) {
-        isKnobDragging = false; 
-        document.body.style.cursor = 'default';
-    }
+    lastKnobAngle = currentMouseAngle;
 }
 
 boosterKnob.addEventListener('mousedown', (e) => { 
-    e.preventDefault(); // Previne que o navegador tente arrastar o ícone
+    e.preventDefault(); // <--- PREVINE O ARRASTO NATIVO DO NAVEGADOR
     isKnobDragging = true; 
-    
     const rect = boosterKnobWrapper.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2; 
     const centerY = rect.top + rect.height / 2;
-    
-    // Registra o ponto inicial do clique em vez de pular para ele
-    lastAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
-    exactBoosterVal = currentBoosterVal; // Sincroniza o valor inicial real
-    
-    document.body.style.cursor = 'grabbing';
-});
-
-// Duplo clique na válvula reseta o volume para 100%
-boosterKnob.addEventListener('dblclick', () => { 
-    exactBoosterVal = 100;
-    setKnobValue(100); 
-    sendToEngine({ action: 'set_booster', volume: 100 }); 
+    lastKnobAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
 });
 
 document.addEventListener('mousemove', handleKnobDrag); 
 
-// Travas de segurança para garantir que a válvula sempre solte
-document.addEventListener('mouseup', stopKnobDrag); 
-document.addEventListener('mouseleave', stopKnobDrag); 
-window.addEventListener('blur', stopKnobDrag); 
+// Travas Globais Absolutas para a Válvula
+const stopKnobDrag = () => {
+    isKnobDragging = false;
+    lastKnobAngle = null;
+};
 
+document.addEventListener('mouseup', stopKnobDrag); 
+document.addEventListener('mouseleave', stopKnobDrag);
+window.addEventListener('blur', stopKnobDrag);
 
 btnShowSave.addEventListener('click', () => { 
     saveContainer.classList.toggle('hidden'); 
@@ -1071,9 +1182,11 @@ if (btnCancelPreset) {
 
 btnSavePreset.addEventListener('click', () => {
     const name = newPresetName.value.trim(); if (!name) return;
-    getStorageData((custom, order, favs) => {
+    getStorageData((custom, order, favs, favsCurves) => {
         custom[name] = { points: eqPoints, type: 'created' }; if(!order.includes(name)) order.push(name);
-        saveStorageData(custom, order, favs, () => { 
+        
+        let activeFavs = isCurvesMode ? favsCurves : favs;
+        saveStorageData(custom, order, activeFavs, () => { 
             newPresetName.value = ''; saveContainer.classList.add('hidden'); 
             currentSelectedPresetKey = `custom_${name}`; 
             isModified = false; tempPresetName = "";
@@ -1089,7 +1202,7 @@ fileInput.addEventListener('change', (e) => {
     if (files.length === 0) return;
     if (files.length > 50) { alert("Por favor, selecione no máximo 50 arquivos por vez."); return; }
     
-    getStorageData((custom, order, favs) => {
+    getStorageData((custom, order, favs, favsCurves) => {
         let filesProcessed = 0;
         files.forEach(file => {
             const reader = new FileReader();
@@ -1111,7 +1224,8 @@ fileInput.addEventListener('change', (e) => {
                 
                 filesProcessed++;
                 if (filesProcessed === files.length) {
-                    saveStorageData(custom, order, favs, () => renderUI());
+                    let activeFavs = isCurvesMode ? favsCurves : favs;
+                    saveStorageData(custom, order, activeFavs, () => renderUI());
                 }
             }; 
             reader.readAsText(file); 
@@ -1192,7 +1306,6 @@ function executeSingleDownload(presetNameRaw, pointsData) {
     const a = document.createElement('a'); a.href = dataStr; a.download = `Preset_${cleanName.replace(/\s+/g, '_')}.json`;
     document.body.appendChild(a); a.click(); a.remove();
 }
-
 
 function sendAiCommand(promptText) {
     if (promptText === "") return;

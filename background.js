@@ -22,7 +22,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         setupOffscreenDocument('offscreen.html').then(() => { captureTab(message.tabId); });
     }
     
-    if (message.action === 'process_ai_command') {
+    else if (message.action === 'process_ai_command') {
         processPromptWithGemini(message.prompt, message.currentPoints, message.isNewCurve).then(eqPoints => {
             if (eqPoints && Array.isArray(eqPoints)) {
                 chrome.runtime.sendMessage({ action: 'update_dynamic_eq', points: eqPoints, tabId: message.tabId });
@@ -30,6 +30,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ status: "Curva ajustada pela IA!" });
         });
         return true; 
+    }
+
+    // Receptor de gatilho do Sleep Timer
+    else if (message.action === 'sleep_timer_close') {
+        if (message.closeType === 'tab') {
+            chrome.tabs.remove(message.targetTabId).catch(() => {});
+        } else if (message.closeType === 'window') {
+            chrome.tabs.get(message.targetTabId, (tab) => {
+                if (tab && tab.windowId) {
+                    chrome.windows.remove(tab.windowId).catch(() => {});
+                }
+            });
+        }
+        sendResponse({ status: 'closed' });
     }
 });
 
@@ -48,7 +62,7 @@ function captureTab(tabId) {
     });
 }
 
-// --- O CÉREBRO DA IA (Correção de Verbos de Redução) ---
+// --- O CÉREBRO DA IA ---
 async function processPromptWithGemini(userPrompt, currentPoints, isNewCurve) {
     const data = await chrome.storage.local.get(['geminiApiKey']);
     const GEMINI_API_KEY = data.geminiApiKey;
@@ -110,15 +124,15 @@ function fallbackMockAI(prompt, currentPoints, isNewCurve) {
     let pts = (!isNewCurve && currentPoints && currentPoints.length > 0) ? JSON.parse(JSON.stringify(currentPoints)) : [ {f: 150, g: 0, q: 1.2}, {f: 400, g: 0, q: 1.2}, {f: 1000, g: 0, q: 1.2}, {f: 3000, g: 0, q: 1.2}, {f: 8000, g: 0, q: 1.2} ];
     const p = prompt.toLowerCase();
     
-    // Vocabulário de Direção Geral (agora inclui diminua, atenuar, baixar, etc)
+    // Vocabulário de Direção Geral
     const cutWords = ["menos", "remov", "tir", "abai", "reduz", "cort", "seco", "limp", "ameniz", "suaviz", "diminu", "baix", "atenu"];
     const isCut = cutWords.some(w => p.includes(w));
 
     // Lógica de Intensidade (Multiplicadores)
     let intensityMult = 1.0;
-    if (p.includes("muito") || p.includes("bastante") || p.includes("demais") || p.includes("forte")) intensityMult = 1.8; // ~7 a 9 dB
-    else if (p.includes("pouco") || p.includes("levemente")) intensityMult = 0.5; // ~2 dB
-    else if (p.includes("sutil") || p.includes("sutilmente")) intensityMult = 0.25; // ~1 dB
+    if (p.includes("muito") || p.includes("bastante") || p.includes("demais") || p.includes("forte")) intensityMult = 1.8; 
+    else if (p.includes("pouco") || p.includes("levemente")) intensityMult = 0.5; 
+    else if (p.includes("sutil") || p.includes("sutilmente")) intensityMult = 0.25; 
 
     const boostVal = 4 * intensityMult;
     const cutVal = -5 * intensityMult;
@@ -132,30 +146,19 @@ function fallbackMockAI(prompt, currentPoints, isNewCurve) {
     const agudosWords = ["agudo", "sibilância", "s forte", "chiado", "sibilante", "assobio", "crisp", "ssss", "f forte", "t forte", "ar", "brilho", "cristalino", "seda", "respiração", "aberto", "cintilante", "leveza", "fôlego"];
 
     pts.forEach(pt => {
-        // 1. Graves (até 250Hz)
         if (gravesWords.some(w => p.includes(w)) && pt.f <= 250) {
             pt.g += (p.includes("seco") || p.includes("limp") || p.includes("desembol")) && !p.includes("mais") ? cutVal : dir;
         }
-        
-        // 2. Médios Graves (250Hz - 500Hz)
-        if (mediosGravesWords.some(w => p.includes(w)) && pt.f > 250 && pt.f <= 500) {
-            pt.g += dir;
-        }
-
-        // 3. Médios (500Hz - 2000Hz)
+        if (mediosGravesWords.some(w => p.includes(w)) && pt.f > 250 && pt.f <= 500) { pt.g += dir; }
         if (mediosWords.some(w => p.includes(w)) && pt.f > 500 && pt.f <= 2000) {
             if (p.includes("fraca") || p.includes("sem força") || p.includes("sumida")) pt.g += boostVal;
             else pt.g += dir;
         }
-        
-        // 4. Médios Agudos (2000Hz - 5000Hz)
         if (mediosAgudosWords.some(w => p.includes(w)) && pt.f > 2000 && pt.f <= 5000) {
             if (p.includes("estridente") || p.includes("ardido") || p.includes("perfurante") || p.includes("metálico")) pt.g += (cutVal * 1.2); 
             else if (p.includes("abafada") || p.includes("abafado") || p.includes("tampada")) pt.g += boostVal;
             else pt.g += dir;
         }
-        
-        // 5. Agudos e Ar (5000Hz+)
         if (agudosWords.some(w => p.includes(w)) && pt.f > 5000) {
             if (/\bs\b/.test(p) || p.includes("sibilância") || p.includes("s forte") || p.includes("chiado")) pt.g += (cutVal * 1.2); 
             else pt.g += dir;

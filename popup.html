@@ -93,7 +93,92 @@
                 </div>
             </div>
             
+            <button id="btn-open-curves-info" class="btn-primary metal-button" style="width: 100%; padding: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;" data-i18n="btn_curves_guide">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
+                Guia de Curvas
+            </button>
             <button id="btn-close-info" class="metal-button" style="width: 100%; padding: 10px;" data-i18n="btn_understood">Entendi</button>
+        </div>
+    </div>
+
+    <div id="curves-modal-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9005; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);">
+        <div class="modal-content" style="max-width: 360px; max-height: 85%; padding: 25px; display: flex; flex-direction: column;">
+            <div class="modal-header" style="display:flex; align-items:center; gap:8px; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 15px; margin-bottom: 15px;">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
+                <span data-i18n="curves_guide_title">Guia de Curvas</span>
+            </div>
+            
+            <div class="curves-text-container scrollable-area">
+                <button class="accordion-header">1. Percepção Humana (Psicoacústica) <span>▼</span></button>
+                <div class="accordion-content hidden">
+                    <p>Explicam como o ouvido humano percebe as frequências de maneira diferente dependendo do volume.</p>
+                    <h4>Curvas de Fletcher-Munson:</h4>
+                    <p><strong>Diferencial:</strong> Comprovaram que a nossa audição não é linear. Justificam a existência do botão "Loudness" em aparelhos antigos, compensando a dificuldade humana de ouvir graves e agudos extremos em volumes baixos.</p>
+                    <h4>Curvas ISO 226 (Isofonia Modernas):</h4>
+                    <p><strong>Diferencial:</strong> É o padrão internacional atual, sendo a evolução científica mais precisa das curvas clássicas para medir as linhas de "volume percebido igual".</p>
+                </div>
+
+                <button class="accordion-header">2. Curvas de Ponderação (Medição) <span>▼</span></button>
+                <div class="accordion-content hidden">
+                    <p>Usadas em decibelímetros para traduzir o ruído físico para o que realmente incomoda o ouvido humano.</p>
+                    <h4>Curva A (dBA):</h4>
+                    <p><strong>Diferencial:</strong> Padrão global para leis de silêncio e medição ambiental. Filtra os graves severamente para imitar como ouvimos sons em volumes moderados.</p>
+                    <h4>Curva C (dBC):</h4>
+                    <p><strong>Diferencial:</strong> Focada em volumes altíssimos e ambientes com muito grave (shows, indústrias). Reflete o fato de que, em alto volume, percebemos os graves quase com a mesma força que os médios.</p>
+                </div>
+
+                <button class="accordion-header">3. Padrões para Mídias e Cinema <span>▼</span></button>
+                <div class="accordion-content hidden">
+                    <p>Curvas criadas para resolver limitações físicas de armazenamento de áudio ou acústica de grandes salas.</p>
+                    <h4>Curva RIAA (Discos de Vinil):</h4>
+                    <p><strong>Diferencial:</strong> O grande truque do vinil. Corta graves na gravação (para a agulha não pular) e aumenta agudos. Na reprodução, inverte o processo, o que acaba mascarando o chiado do disco.</p>
+                    <h4>Curva-X / ISO 2969 (Cinema Moderno):</h4>
+                    <p><strong>Diferencial:</strong> Aplica um corte gradual nos agudos (roll-off) a partir de 2 kHz. Evita que efeitos especiais estridentes machuquem os ouvidos em salas de cinema muito grandes.</p>
+                    <h4>Curva da Academia / Academy Curve:</h4>
+                    <p><strong>Diferencial:</strong> O antigo padrão de Hollywood. Cortava drasticamente as frequências acima de 8 kHz e os subgraves apenas para esconder o alto ruído das antigas películas ópticas, priorizando apenas o diálogo.</p>
+                    <h4>Curvas NAB e CCIR (Fita Magnética):</h4>
+                    <p><strong>Diferencial:</strong> Desenvolvidas para driblar o chiado da fita (tape hiss). O NAB (padrão americano) reforça mais os graves, enquanto o CCIR (padrão europeu) é preferido para fitas em alta velocidade por lidar melhor com os agudos.</p>
+                </div>
+
+                <button class="accordion-header">4. Acústica de Salas <span>▼</span></button>
+                <div class="accordion-content hidden">
+                    <p>Estudos sobre como um ambiente perfeito deve interagir com as caixas de som.</p>
+                    <h4>Curva Optimum Room B&K 1974:</h4>
+                    <p><strong>Diferencial:</strong> Derrubou o mito da sala "100% plana". Provou que a acústica ideal para o ouvido humano exige uma inclinação suave e contínua para baixo (dos graves para os agudos), base para os sistemas de calibração modernos.</p>
+                </div>
+
+                <button class="accordion-header">5. Curvas-Alvo para Fones (Targets) <span>▼</span></button>
+                <div class="accordion-content hidden">
+                    <p>As "réguas" ideais que os engenheiros tentam alcançar ao afinar fones de ouvido.</p>
+                    <h4>Curva Harman (Harman Target):</h4>
+                    <p><strong>Diferencial:</strong> O padrão de ouro do consumidor moderno. Imita o som de caixas acústicas excelentes tocando em uma sala tratada (com leve reforço de graves e agudos controlados).</p>
+                    <h4>Diffuse Field e Free Field:</h4>
+                    <p><strong>Diferencial:</strong> Os padrões analíticos antigos. Baseiam-se em simulações de som em salas reverberantes ou ao ar livre. Hoje, são frequentemente consideradas brilhantes ou sem vida para uso recreativo.</p>
+                    <h4>IEF Neutral Target (In-Ear Fidelity):</h4>
+                    <p><strong>Diferencial:</strong> Foca puramente na naturalidade dos médios e no ganho natural do canal auditivo (pico por volta de 3 kHz). Deixa a linha de graves reta, sem reforços artificiais, focando na precisão absoluta das vozes e instrumentos.</p>
+                    <h4>VDSF Target (Moondrop):</h4>
+                    <p><strong>Diferencial:</strong> Busca recriar a sensação de espaço e palco sonoro (soundstage) amplo. Tenta tirar o som "de dentro da cabeça" do usuário, com graves muito limpos que não invadem os médios.</p>
+                    <h4>JM-1 Target:</h4>
+                    <p><strong>Diferencial:</strong> Corrige os excessos da Curva Harman. Tira a agressividade dos médios-altos (o "grito") e preenche os médios-graves para entregar um som consideravelmente mais encorpado, quente e natural.</p>
+                    <h4>Curva Etymotic (Diffuse Field Comp.):</h4>
+                    <p><strong>Diferencial:</strong> Pioneira no mercado analítico. Adaptação rigorosa da curva de Campo Difuso para fones de inserção profunda. O foco absoluto é na precisão, textura e isolamento, sendo absurdamente detalhada, mas considerada "fria" por muitos.</p>
+                </div>
+
+                <button class="accordion-header">6. Fones "Budget Chi-Fi" <span>▼</span></button>
+                <div class="accordion-content hidden">
+                    <p>Fones de baixo custo que aplicaram essas curvas com precisão de nível audiófilo.</p>
+                    <h4>Moondrop Chu:</h4>
+                    <p><strong>Diferencial:</strong> Pioneiro no custo-benefício, segue a VDSF Target. Tem som "Neutro-Brilhante", sendo excepcional para vocais e acústicos, mas com pouco sub-grave.</p>
+                    <h4>7Hz Salnotes Zero:</h4>
+                    <p><strong>Diferencial:</strong> Segue a IEF Neutral com adição de sub-grave. Resolve a fadiga aguda do Chu e é a referência de neutralidade na faixa de entrada.</p>
+                    <h4>Truthear x Crinacle ZERO:</h4>
+                    <p><strong>Diferencial:</strong> O modelo Azul imita a curva Harman perfeitamente. O modelo Vermelho ajusta a Harman, suavizando graves e médios para um som mais relaxado e menos fatigante.</p>
+                    <h4>Tangzu Wan'er S.G:</h4>
+                    <p><strong>Diferencial:</strong> Foge da extrema neutralidade para entregar um som "quente". Tem mais energia nos médios-graves, tornando vocais e guitarras mais encorpados e musicais em prol da diversão.</p>
+                </div>
+            </div>
+
+            <button id="btn-close-curves-info" class="btn-white" style="margin-top: 15px; padding: 8px;" data-i18n="btn_back">Voltar</button>
         </div>
     </div>
 
@@ -134,7 +219,7 @@
                 </button>
             </div>
         </div>
-        <div id="favorites-bar" class="favorites-bar hidden"></div>
+        <div id="favorites-bar" class="favorites-bar hidden" style="flex-wrap: wrap;"></div>
     </div>
 
     <div class="graph-container">
@@ -184,7 +269,13 @@
         </div>
 
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-            <label style="margin-bottom: 4px;" data-i18n="preset">Preset</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label style="margin-bottom: 0;" data-i18n="preset">Preset</label>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600;" data-i18n="curves_mode">Curvas</span>
+                    <label class="switch"><input type="checkbox" id="curves-mode-switch"><span class="slider"></span></label>
+                </div>
+            </div>
             <div class="custom-select-container">
                 <div id="preset-trigger" class="custom-select-trigger metal-select">
                     <span id="preset-trigger-text">Padrão (Flat)</span>
