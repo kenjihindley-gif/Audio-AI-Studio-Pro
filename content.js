@@ -57,6 +57,15 @@ if (!window.hasAudioAIAgent) {
         if (res.isNonStopOn) startNonStop();
     });
 
+    // CORREÇÃO: Forçar Fullscreen Real do Navegador (F11) ao entrar em Fullscreen no Vídeo (Bypass da limitação do TabCapture)
+    document.addEventListener('fullscreenchange', () => {
+        const isFullscreen = document.fullscreenElement != null;
+        chrome.runtime.sendMessage({ 
+            action: 'force_window_fullscreen', 
+            state: isFullscreen 
+        });
+    });
+
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const media = document.querySelector('video, audio');
 

@@ -330,14 +330,20 @@ function sendToEngine(msgParams, callback) { if (currentTabId !== null) chrome.r
 
 // --- Histórico ---
 let eqPoints = []; const MAX_POINTS = 24; 
-let eqHistory = []; let historyIndex = -1; const MAX_HISTORY = 10;
+let eqHistory = []; let historyIndex = -1; const MAX_HISTORY = 30;
 const btnUndo = document.getElementById('btn-undo'); const btnRedo = document.getElementById('btn-redo');
+
+chrome.storage.local.get(['eqHistory', 'historyIndex'], (res) => {
+    if (res.eqHistory) eqHistory = res.eqHistory;
+    if (res.historyIndex !== undefined) historyIndex = res.historyIndex;
+    updateHistoryButtons();
+});
 
 function updateHistoryButtons() {
     if (historyIndex > 0) { btnUndo.disabled = false; btnUndo.style.opacity = '1'; btnUndo.style.cursor = 'pointer'; } 
-    else { btnUndo.disabled = true; btnUndo.style.opacity = '0.4'; btnUndo.style.cursor = 'not-allowed'; }
+    else { btnUndo.disabled = true; btnUndo.style.opacity = '0.4'; btnUndo.style.cursor = 'default'; }
     if (historyIndex < eqHistory.length - 1) { btnRedo.disabled = false; btnRedo.style.opacity = '1'; btnRedo.style.cursor = 'pointer'; } 
-    else { btnRedo.disabled = true; btnRedo.style.opacity = '0.4'; btnRedo.style.cursor = 'not-allowed'; }
+    else { btnRedo.disabled = true; btnRedo.style.opacity = '0.4'; btnRedo.style.cursor = 'default'; }
 }
 
 function saveHistoryState(pointsToSave) {
@@ -347,10 +353,11 @@ function saveHistoryState(pointsToSave) {
     eqHistory.push(JSON.parse(currentStateString)); 
     if (eqHistory.length > MAX_HISTORY) eqHistory.shift(); else historyIndex++;
     updateHistoryButtons();
+    chrome.storage.local.set({ eqHistory, historyIndex });
 }
 
-function doUndo() { if (historyIndex > 0) { historyIndex--; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); surfTheCurve(); } }
-function doRedo() { if (historyIndex < eqHistory.length - 1) { historyIndex++; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); surfTheCurve(); } }
+function doUndo() { if (historyIndex > 0) { historyIndex--; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); surfTheCurve(); chrome.storage.local.set({ historyIndex }); } }
+function doRedo() { if (historyIndex < eqHistory.length - 1) { historyIndex++; eqPoints = JSON.parse(JSON.stringify(eqHistory[historyIndex])); sendPointsToEngine(true); updateHistoryButtons(); markAsModified(); surfTheCurve(); chrome.storage.local.set({ historyIndex }); } }
 btnUndo.addEventListener('click', doUndo); btnRedo.addEventListener('click', doRedo);
 
 
@@ -696,7 +703,7 @@ function toggleFavorite(key, activeFavs, custom, order) {
     saveStorageData(custom, order, activeFavs, renderUI);
 }
 
-function selectPresetFromDropdown(key) { presetOptions.classList.remove('open'); applyPreset(key); renderUI(); }
+function selectPresetFromDropdown(key) { presetOptions.classList.remove('open'); document.body.style.overflow = ''; applyPreset(key); renderUI(); }
 
 function applyPreset(key) {
     isModified = false; tempPresetName = "";
@@ -732,9 +739,18 @@ curvesModeSwitch.addEventListener('change', (e) => {
     renderUI();
 });
 
-presetTrigger.addEventListener('click', () => presetOptions.classList.toggle('open'));
+presetTrigger.addEventListener('click', () => {
+    const isOpen = presetOptions.classList.toggle('open');
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+});
 btnDots.addEventListener('click', () => dotsDropdown.classList.toggle('hidden'));
-document.addEventListener('click', (e) => { if (!e.target.closest('.custom-select-container')) presetOptions.classList.remove('open'); if (!e.target.closest('.dots-container')) dotsDropdown.classList.add('hidden'); });
+document.addEventListener('click', (e) => { 
+    if (!e.target.closest('.custom-select-container')) {
+        presetOptions.classList.remove('open'); 
+        document.body.style.overflow = '';
+    }
+    if (!e.target.closest('.dots-container')) dotsDropdown.classList.add('hidden'); 
+});
 
 function openModal(mode) {
     getStorageData((custom, order, favs, favsCurves) => {
@@ -961,17 +977,34 @@ function drawGraph() {
         ctx.fillText(freq >= 1000 ? (freq/1000) + 'k' : freq, textX, height - 5);
     });
 
-    if (currentSpectrum && currentSpectrum.length > 0) {
+    if (currentSpectrumDry && currentSpectrumDry.length > 0) {
+        ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+        const nyquist = currentSampleRate / 2; const binCount = currentSpectrumDry.length;
+
+        for (let i = 1; i < binCount; i++) {
+            const val = currentSpectrumDry[i]; if (val === 0) continue;
+            const freq = i * (nyquist / binCount); if (freq > 20000) continue; 
+            const nextFreq = (i + 1) * (nyquist / binCount);
+            
+            let x = freqToX(freq); if (x < 0) x = 0; let nextX = freqToX(nextFreq); if (nextX > width) nextX = width;
+            let barWidth = Math.max(1.5, nextX - x - 0.5); 
+            const percent = val / 255; const smoothPercent = Math.pow(percent, 1.2); 
+            const barHeight = smoothPercent * graphHeight; const y = height - paddingBottom - barHeight;
+            ctx.fillRect(x, y, barWidth, barHeight);
+        }
+    }
+
+    if (currentSpectrumWet && currentSpectrumWet.length > 0) {
         const gradient = ctx.createLinearGradient(0, graphHeight, 0, 0);
         const isDark = document.body.classList.contains('dark-mode');
         gradient.addColorStop(0, isDark ? 'rgba(75, 85, 99, 0.05)' : 'rgba(156, 163, 175, 0.05)'); 
         gradient.addColorStop(0.6, isDark ? 'rgba(107, 114, 128, 0.3)' : 'rgba(107, 114, 128, 0.25)'); 
         gradient.addColorStop(1, isDark ? 'rgba(156, 163, 175, 0.6)' : 'rgba(75, 85, 99, 0.5)'); 
         
-        ctx.fillStyle = gradient; const nyquist = currentSampleRate / 2; const binCount = currentSpectrum.length;
+        ctx.fillStyle = gradient; const nyquist = currentSampleRate / 2; const binCount = currentSpectrumWet.length;
 
         for (let i = 1; i < binCount; i++) {
-            const val = currentSpectrum[i]; if (val === 0) continue;
+            const val = currentSpectrumWet[i]; if (val === 0) continue;
             const freq = i * (nyquist / binCount); if (freq > 20000) continue; 
             const nextFreq = (i + 1) * (nyquist / binCount);
             
@@ -1002,47 +1035,139 @@ function drawGraph() {
     }
 }
 
+function drawCompGraph() {
+    const compressorPanel = document.getElementById('compressor-panel');
+    const canvas = document.getElementById('compGraphCanvas');
+    if (!canvas || !compressorPanel || compressorPanel.classList.contains('hidden')) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    // Calcula threshold
+    const sliderVal = document.getElementById('compressor-slider') ? parseInt(document.getElementById('compressor-slider').value) : 0;
+    // 0% = teto (y=0). 100% = meio (y = height/2). 
+    const thresholdY = height * (sliderVal / 100) * 0.55; 
+    
+    if (currentSpectrumDry && currentSpectrumDry.length > 0) {
+        const nyquist = currentSampleRate / 2; 
+        const binCount = currentSpectrumDry.length;
+        
+        const logMin = Math.log10(20);
+        const logMax = Math.log10(20000);
+        const freqToLocalX = (f) => {
+            if (f < 20) f = 20; if (f > 20000) f = 20000;
+            return ((Math.log10(f) - logMin) / (logMax - logMin)) * width;
+        };
+        
+        for (let i = 1; i < binCount; i++) {
+            const val = currentSpectrumDry[i]; if (val === 0) continue;
+            const freq = i * (nyquist / binCount); if (freq > 20000) continue; 
+            const nextFreq = (i + 1) * (nyquist / binCount);
+            
+            let lx = freqToLocalX(freq);
+            let nextLx = freqToLocalX(nextFreq);
+            let barWidth = Math.max(1, nextLx - lx);
+            
+            const percent = val / 255; 
+            const smoothPercent = Math.pow(percent, 1.2); 
+            const barHeight = smoothPercent * height; 
+            const y = height - barHeight;
+            
+            // Frequência abaixo do limiar (segura)
+            ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(156, 163, 175, 0.4)' : 'rgba(107, 114, 128, 0.4)';
+            ctx.fillRect(lx, Math.max(y, thresholdY), barWidth, height - Math.max(y, thresholdY));
+            
+            // Frequência esmagada pelo limiter (clipando)
+            if (y < thresholdY) {
+                ctx.fillStyle = '#ef4444'; // Vermelho
+                ctx.fillRect(lx, y, barWidth, thresholdY - y);
+            }
+        }
+    }
+    
+    // Draw threshold line
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, thresholdY);
+    ctx.lineTo(width, thresholdY);
+    ctx.stroke();
+}
+
 let clipTimer = null;
+let currentSpectrumWet = [];
+let currentSpectrumDry = [];
+
 function animationLoop() {
     if (currentTabId !== null && isAppOn) {
         chrome.runtime.sendMessage({ action: 'get_spectrum', tabId: currentTabId }, (res) => {
-            if (!chrome.runtime.lastError && res && res.data) { 
-                currentSpectrum = res.data; 
-                if (res.sampleRate) currentSampleRate = res.sampleRate; 
-                
-                let peak = 0;
-                for (let i = 0; i < currentSpectrum.length; i++) {
-                    if (currentSpectrum[i] > peak) peak = currentSpectrum[i];
-                }
-                
-                let normalizedPeak = peak / 255;
-                let targetPercent = Math.pow(normalizedPeak, 0.7) * 100;
-                
-                if (!window.dbMeterPercent) window.dbMeterPercent = 0;
-                
-                if (targetPercent > window.dbMeterPercent) {
-                    window.dbMeterPercent = window.dbMeterPercent * 0.4 + targetPercent * 0.6; 
-                } else {
-                    window.dbMeterPercent = window.dbMeterPercent * 0.85 + targetPercent * 0.15; 
-                }
-                
-                if (dbMeterFill) dbMeterFill.style.height = `${window.dbMeterPercent}%`;
+            try {
+                if (!chrome.runtime.lastError && res && res.dataWet && res.dataDry) { 
+                    currentSpectrumWet = res.dataWet; 
+                    currentSpectrumDry = res.dataDry;
+                    
+                    if (res.sampleRate) currentSampleRate = res.sampleRate; 
+                    
+                    let peakWet = 0;
+                    for (let i = 0; i < currentSpectrumWet.length; i++) {
+                        if (currentSpectrumWet[i] > peakWet) peakWet = currentSpectrumWet[i];
+                    }
+                    
+                    let peakDry = 0;
+                    for (let i = 0; i < currentSpectrumDry.length; i++) {
+                        if (currentSpectrumDry[i] > peakDry) peakDry = currentSpectrumDry[i];
+                    }
+                    
+                    let normalizedPeakWet = peakWet / 255;
+                    if (res.peakTimeDomain !== undefined && !isNaN(res.peakTimeDomain)) {
+                        normalizedPeakWet = res.peakTimeDomain;
+                    }
+                    if (normalizedPeakWet < 0) normalizedPeakWet = 0;
+                    
+                    let targetPercentWet = Math.pow(normalizedPeakWet, 0.7) * 100;
+                    if (isNaN(targetPercentWet)) targetPercentWet = 0;
+                    
+                    if (!window.dbMeterPercent || isNaN(window.dbMeterPercent)) window.dbMeterPercent = 0;
+                    
+                    if (targetPercentWet > window.dbMeterPercent) {
+                        window.dbMeterPercent = window.dbMeterPercent * 0.4 + targetPercentWet * 0.6; 
+                    } else {
+                        window.dbMeterPercent = window.dbMeterPercent * 0.85 + targetPercentWet * 0.15; 
+                    }
+                    
+                    if (dbMeterFill) dbMeterFill.style.height = `${window.dbMeterPercent}%`;
 
-                if (peak >= 254) {
-                    if (dbMeterClip) dbMeterClip.classList.add('active');
-                    clearTimeout(clipTimer);
-                    clipTimer = setTimeout(() => { if (dbMeterClip) dbMeterClip.classList.remove('active'); }, 300);
-                }
+                    if (window.dbMeterPercent >= 99) {
+                        if (dbMeterClip) dbMeterClip.classList.add('active');
+                        clearTimeout(clipTimer);
+                        clipTimer = setTimeout(() => { if (dbMeterClip) dbMeterClip.classList.remove('active'); }, 300);
+                    }
 
-            } else { 
-                currentSpectrum = []; 
-                if (dbMeterFill) dbMeterFill.style.height = `0%`;
-            } 
-            drawGraph(); 
+                    // Compressor Visual Update
+                    const reductionVal = document.getElementById('comp-reduction-val');
+                    if (reductionVal && typeof res.reduction === 'number') {
+                        let redVal = res.reduction; 
+                        if (redVal > 0) redVal = 0;
+                        reductionVal.textContent = redVal.toFixed(1) + ' dB';
+                    }
+                    
+                    drawCompGraph();
+
+                } else { 
+                    currentSpectrumWet = []; currentSpectrumDry = [];
+                    if (dbMeterFill) dbMeterFill.style.height = `0%`;
+                } 
+                drawGraph(); 
+            } catch (err) {
+                console.error("Animation Loop Error: ", err);
+            }
             requestAnimationFrame(animationLoop);
         });
     } else { 
-        currentSpectrum = []; 
+        currentSpectrumWet = []; currentSpectrumDry = [];
         if (dbMeterFill) dbMeterFill.style.height = `0%`;
         drawGraph(); 
         requestAnimationFrame(animationLoop); 
@@ -1056,6 +1181,22 @@ chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'sync_popup_state') {
         eqPoints = message.points || []; 
         const vol = message.boosterVolume || 100; setKnobValue(vol);
+        
+        const compAmt = message.compressorAmount || 0;
+        const compSlider = document.getElementById('compressor-slider');
+        const compDisplay = document.getElementById('comp-val-display');
+        if (compSlider && compDisplay) {
+            compSlider.value = compAmt;
+            compDisplay.textContent = compAmt + '%';
+        }
+
+        const syncAmt = message.audioSyncAmount || 0;
+        const syncSlider = document.getElementById('audio-sync-slider');
+        const syncDisplay = document.getElementById('sync-val-display');
+        if (syncSlider && syncDisplay) {
+            syncSlider.value = syncAmt;
+            syncDisplay.textContent = syncAmt + ' ms';
+        }
         
         chrome.storage.local.get([`preset_${currentTabId}`], (res) => {
             if (res[`preset_${currentTabId}`]) { 
@@ -1079,8 +1220,13 @@ chrome.runtime.onMessage.addListener((message) => {
         }
 
         if (isInitialLoad) { saveHistoryState(eqPoints); isInitialLoad = false; }
-        if (window.justGotAIPoints) { saveHistoryState(eqPoints); window.justGotAIPoints = false; }
     } 
+    else if (message.action === 'update_dynamic_eq') {
+        eqPoints = message.points || [];
+        drawGraph();
+        surfTheCurve();
+        saveHistoryState(eqPoints);
+    }
     else if (message.action === 'update_graph_data') { 
         currentDBResponse = message.dbValues; 
         currentBoosterDB = message.boosterDB; 
@@ -1154,6 +1300,29 @@ boosterKnob.addEventListener('mousedown', (e) => {
 });
 
 document.addEventListener('mousemove', handleKnobDrag); 
+
+// --- NOVO: Compressor ---
+const btnCompressor = document.getElementById('btn-compressor');
+const compressorPanel = document.getElementById('compressor-panel');
+const btnCloseCompressor = document.getElementById('btn-close-compressor');
+const compressorSlider = document.getElementById('compressor-slider');
+const compValDisplay = document.getElementById('comp-val-display');
+
+if (btnCompressor && compressorPanel) {
+    btnCompressor.addEventListener('click', () => {
+        compressorPanel.classList.toggle('hidden');
+    });
+    btnCloseCompressor.addEventListener('click', () => {
+        compressorPanel.classList.add('hidden');
+    });
+    compressorSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        compValDisplay.textContent = val + '%';
+        if (currentTabId !== null) {
+            chrome.runtime.sendMessage({ action: 'set_compressor', amount: val, tabId: currentTabId });
+        }
+    });
+}
 
 // Travas Globais Absolutas para a Válvula
 const stopKnobDrag = () => {
@@ -1307,24 +1476,271 @@ function executeSingleDownload(presetNameRaw, pointsData) {
     document.body.appendChild(a); a.click(); a.remove();
 }
 
+let isAiElevated = false;
+
+function elevateAiSection() {
+    if (isAiElevated) return;
+    const graphEl = document.querySelector('.graph-container');
+    const aiSection = document.getElementById('ai-active-section');
+    if (!graphEl || !aiSection) return;
+    
+    aiSection.style.transform = 'none';
+    const graphRect = graphEl.getBoundingClientRect();
+    const aiRect = aiSection.getBoundingClientRect();
+    const distance = graphRect.bottom + 15 - aiRect.top;
+    
+    aiSection.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s, background-color 0.4s, padding 0.4s, border-radius 0.4s';
+    
+    requestAnimationFrame(() => {
+        aiSection.style.transform = `translateY(${distance}px)`;
+        aiSection.style.backgroundColor = 'var(--neu-bg)';
+        aiSection.style.padding = '15px';
+        aiSection.style.borderRadius = '15px';
+        aiSection.style.boxShadow = '0 20px 40px rgba(0,0,0,0.6)';
+        aiSection.style.zIndex = '150';
+        aiSection.style.position = 'relative'; 
+    });
+    
+    isAiElevated = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function restoreAiSection() {
+    if (!isAiElevated) return;
+    const aiSection = document.getElementById('ai-active-section');
+    if (!aiSection) return;
+    
+    aiSection.style.transform = 'translateY(0)';
+    aiSection.style.backgroundColor = 'transparent';
+    aiSection.style.padding = '0';
+    aiSection.style.boxShadow = 'none';
+    
+    setTimeout(() => {
+        if (!isAiElevated) {
+            aiSection.style.zIndex = '1';
+            aiSection.style.position = 'static';
+        }
+    }, 400); 
+    
+    isAiElevated = false;
+}
+
+document.addEventListener('click', (e) => {
+    const aiSection = document.getElementById('ai-active-section');
+    const isThinking = !aiStatus.classList.contains('hidden');
+    const isAiInputFocused = (document.activeElement === aiInput);
+    if (isAiElevated && aiSection && !aiSection.contains(e.target) && !isRecording && !isThinking && !isAiInputFocused) {
+        restoreAiSection();
+    }
+});
+
 function sendAiCommand(promptText) {
     if (promptText === "") return;
     aiStatus.textContent = currentLang === 'pt-br' ? "A IA está pensando... 🤔" : "AI is thinking... 🤔"; 
     aiStatus.classList.remove('hidden'); aiInput.style.height = 'auto';
     const isNewCurve = aiNewCurveSwitch.checked; const pointsToSend = isNewCurve ? [] : eqPoints; 
-    sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => { setTimeout(() => { sendToEngine({ action: 'request_graph_update' }); window.justGotAIPoints = true; markAsModified(); surfTheCurve(); }, 1000); });
+    sendToEngine({ action: 'process_ai_command', prompt: promptText, currentPoints: pointsToSend, isNewCurve: isNewCurve }, () => { 
+        setTimeout(() => { 
+            sendToEngine({ action: 'request_graph_update' }); 
+            markAsModified(); 
+            surfTheCurve(); 
+            restoreAiSection();
+        }, 1000); 
+    });
     aiInput.value = ""; setTimeout(() => { aiStatus.textContent = currentLang === 'pt-br' ? "Curva ajustada! 🚀" : "Curve adjusted! 🚀"; setTimeout(() => aiStatus.classList.add('hidden'), 3000); }, 1500);
 }
 btnSendAi.addEventListener('click', () => sendAiCommand(aiInput.value.trim()));
+aiInput.addEventListener('focus', elevateAiSection);
+aiInput.addEventListener('click', elevateAiSection);
 aiInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiCommand(aiInput.value.trim()); } });
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
-let recognition = null; let isRecording = false;
+let recognition = null; let isRecording = false; let silenceTimer = null; let cancelSend = false;
 if (SpeechRecognition) {
-    recognition = new SpeechRecognition(); recognition.continuous = false; recognition.interimResults = true; recognition.lang = 'pt-BR'; 
-    recognition.onstart = () => { isRecording = true; micStatus.classList.remove('hidden'); btnMic.classList.add('recording'); };
-    recognition.onresult = (e) => { let t = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { t += e.results[i][0].transcript; } aiInput.value = t; aiInput.dispatchEvent(new Event('input')); };
-    recognition.onend = () => { isRecording = false; micStatus.classList.add('hidden'); btnMic.classList.remove('recording'); const f = aiInput.value.trim(); if (f !== "") sendAiCommand(f); };
-    recognition.onerror = (e) => { isRecording = false; micStatus.classList.add('hidden'); btnMic.classList.remove('recording'); if (e.error === 'not-allowed') { chrome.runtime.openOptionsPage(); } else { micStatus.textContent = "Erro: " + e.error; micStatus.classList.remove('hidden'); setTimeout(() => micStatus.classList.add('hidden'), 3000); } };
+    recognition = new SpeechRecognition(); recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'pt-BR'; 
+    let baseText = '';
+    recognition.onstart = () => { 
+        isRecording = true; 
+        micStatus.classList.remove('hidden'); 
+        btnMic.classList.add('recording'); 
+        baseText = aiInput.value.trim();
+        if (baseText.length > 0 && !baseText.endsWith(',')) baseText += ', ';
+    };
+    recognition.onresult = (e) => { 
+        let finalTrans = '';
+        let interimTrans = ''; 
+        for (let i = e.resultIndex; i < e.results.length; ++i) { 
+            if (e.results[i].isFinal) {
+                finalTrans += e.results[i][0].transcript.trim() + ', ';
+            } else {
+                interimTrans += e.results[i][0].transcript;
+            }
+        } 
+        baseText += finalTrans;
+        aiInput.value = baseText + interimTrans; 
+        aiInput.dispatchEvent(new Event('input')); 
+        
+        clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+            if (isRecording) recognition.stop();
+        }, 2000);
+    };
+    recognition.onend = () => { 
+        isRecording = false; micStatus.classList.add('hidden'); btnMic.classList.remove('recording'); 
+        clearTimeout(silenceTimer);
+        let f = aiInput.value.trim();
+        if (f.endsWith(',')) f = f.slice(0, -1).trim();
+        aiInput.value = f;
+        if (f !== "" && !cancelSend) sendAiCommand(f); 
+        cancelSend = false;
+    };
+    recognition.onerror = (e) => { 
+        isRecording = false; micStatus.classList.add('hidden'); btnMic.classList.remove('recording'); 
+        clearTimeout(silenceTimer);
+        if (e.error === 'not-allowed') { chrome.runtime.openOptionsPage(); } else { micStatus.textContent = "Erro: " + e.error; micStatus.classList.remove('hidden'); setTimeout(() => micStatus.classList.add('hidden'), 3000); } 
+    };
 } else { btnMic.style.display = 'none'; }
-btnMic.addEventListener('click', async () => { if (!recognition || isRecording) return; isRecording = true; try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); stream.getTracks().forEach(track => track.stop()); recognition.start(); } catch (err) {} });
+btnMic.addEventListener('click', async () => { 
+    if (isRecording) {
+        cancelSend = true;
+        if (recognition) recognition.stop();
+        return;
+    }
+    if (!recognition) return; 
+    isRecording = true; 
+    elevateAiSection(); 
+    try { 
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); 
+        stream.getTracks().forEach(track => track.stop()); 
+        recognition.start(); 
+    } catch (err) {} 
+});
+
+// --- Audio Sync (Delay) UI Logic ---
+const audioSyncSwitch = document.getElementById('audio-sync-switch');
+const audioSyncPanel = document.getElementById('audio-sync-panel');
+const audioSyncSlider = document.getElementById('audio-sync-slider');
+const syncValDisplay = document.getElementById('sync-val-display');
+const btnSaveSync = document.getElementById('btn-save-sync');
+const btnDeleteSync = document.getElementById('btn-delete-sync');
+const syncPresetsContainer = document.getElementById('sync-presets-container');
+const syncTicks = [0, 100, 200, 350, 500, 800];
+
+let syncPresets = [];
+let deleteModeSync = false;
+
+chrome.storage.local.get(['audioSyncPresetsList'], (res) => {
+    if (res.audioSyncPresetsList) {
+        syncPresets = res.audioSyncPresetsList;
+    }
+    renderSyncPresets();
+});
+
+let syncTimer = null;
+audioSyncSwitch.addEventListener('change', (e) => {
+    if (e.target.checked) {
+        audioSyncPanel.classList.remove('hidden');
+        if (currentTabId !== null) sendToEngine({ action: 'set_audio_sync', amount: parseInt(audioSyncSlider.value) });
+    } else {
+        audioSyncPanel.classList.add('hidden');
+        if (currentTabId !== null) sendToEngine({ action: 'set_audio_sync', amount: 0 });
+    }
+});
+
+audioSyncSlider.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    syncValDisplay.textContent = `${val} ms`;
+    if (audioSyncSwitch.checked && currentTabId !== null) {
+        sendToEngine({ action: 'set_audio_sync', amount: val });
+    }
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => {
+        chrome.storage.local.set({ audioSyncAmount: val });
+    }, 500);
+});
+
+syncTicks.forEach(tick => {
+    const el = document.getElementById(`sync-tick-${tick}`);
+    if (el) {
+        el.addEventListener('click', () => {
+            audioSyncSlider.value = tick;
+            audioSyncSlider.dispatchEvent(new Event('input'));
+        });
+    }
+});
+
+function renderSyncPresets() {
+    if (!syncPresetsContainer) return;
+    syncPresetsContainer.innerHTML = '';
+    syncPresets.forEach((val, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'metal-button';
+        btn.style.cssText = `flex: 1 1 calc(33.333% - 8px); padding: 6px 0; font-size: 0.75rem; font-weight: bold; transition: all 0.2s; ${deleteModeSync ? 'border: 1px solid #ef4444; color: #ef4444; box-shadow: inset 2px 2px 5px var(--neu-dark), inset -2px -2px 5px var(--neu-light);' : ''}`;
+        btn.textContent = `${val}ms`;
+        
+        let confirmTimeout;
+        btn.onclick = () => {
+            if (deleteModeSync) {
+                if (btn.dataset.confirm === 'true') {
+                    syncPresets.splice(idx, 1);
+                    chrome.storage.local.set({ audioSyncPresetsList: syncPresets });
+                    deleteModeSync = false;
+                    btnDeleteSync.style.color = 'var(--text-muted)';
+                    renderSyncPresets();
+                } else {
+                    btn.dataset.confirm = 'true';
+                    const originalText = btn.textContent;
+                    btn.textContent = "Excluir?";
+                    btn.style.backgroundColor = '#ef4444';
+                    btn.style.color = '#fff';
+                    btn.style.border = 'none';
+                    
+                    clearTimeout(confirmTimeout);
+                    confirmTimeout = setTimeout(() => {
+                        btn.dataset.confirm = 'false';
+                        btn.textContent = originalText;
+                        btn.style.backgroundColor = '';
+                        btn.style.color = '#ef4444';
+                        btn.style.border = '1px solid #ef4444';
+                    }, 2500);
+                }
+            } else {
+                audioSyncSlider.value = val;
+                audioSyncSlider.dispatchEvent(new Event('input'));
+            }
+        };
+        syncPresetsContainer.appendChild(btn);
+    });
+}
+
+if (btnSaveSync) {
+    btnSaveSync.addEventListener('click', () => {
+        if (syncPresets.length >= 5) {
+            alert("Você pode salvar no máximo 5 presets de atraso.");
+            return;
+        }
+        const val = parseInt(audioSyncSlider.value);
+        syncPresets.push(val);
+        chrome.storage.local.set({ audioSyncPresetsList: syncPresets });
+        renderSyncPresets();
+        
+        const originalText = btnSaveSync.textContent;
+        btnSaveSync.style.backgroundColor = '#10b981';
+        btnSaveSync.style.color = '#fff';
+        btnSaveSync.textContent = "Salvo!";
+        setTimeout(() => {
+            btnSaveSync.style.backgroundColor = '';
+            btnSaveSync.style.color = '';
+            btnSaveSync.textContent = originalText;
+        }, 1000);
+    });
+}
+
+if (btnDeleteSync) {
+    btnDeleteSync.addEventListener('click', () => {
+        if (syncPresets.length === 0) return;
+        deleteModeSync = !deleteModeSync;
+        btnDeleteSync.style.color = deleteModeSync ? '#ef4444' : 'var(--text-muted)';
+        renderSyncPresets();
+    });
+}

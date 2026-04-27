@@ -1,164 +1,617 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <title>Configurações - Studio Pro</title>
     <style>
         :root {
-            --neu-bg: #f0f0f3; 
+            --neu-bg: #dcdde6; 
             --neu-light: #ffffff;
-            --neu-dark: #d1d5db;
-            --text-main: #374151;
-            --text-muted: #6b7280;
+            --neu-dark: #b8b9c3;
+            --text-main: #111827;
+            --text-muted: #374151;
         }
 
         body.dark-mode {
-            --neu-bg: #2d333b; 
+            --neu-bg: #2d333b;
             --neu-light: #3e4652;
             --neu-dark: #1c2025;
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
         }
 
-        body { 
-            width: 100%; max-width: 600px; margin: 40px auto; 
-            background-color: var(--neu-bg); color: var(--text-main);
+        body {
+            width: 100%;
+            margin: 0;
+            background-color: var(--neu-bg);
+            color: var(--text-main);
             transition: background-color 0.3s ease, color 0.3s ease;
             font-family: 'Segoe UI', sans-serif;
             user-select: none;
+            min-height: 100vh;
+            padding: 40px 0;
         }
 
-        .section { 
-            background: var(--neu-bg); padding: 25px; border-radius: 15px; 
-            box-shadow: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light); 
-            margin-bottom: 25px; 
+        .section {
+            background: var(--neu-bg);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light);
+            margin-bottom: 25px;
         }
 
-        /* Container para os Cards Quadrados Lado a Lado */
-        .cards-row { display: flex; gap: 25px; margin-bottom: 25px; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            width: 100%;
+        }
+
+        .card-base {
+            background: var(--neu-bg);
+            border-radius: 15px;
+            box-shadow: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-sizing: border-box;
+            margin-bottom: 0;
+        }
 
         .card-square {
-            flex: 1; background: var(--neu-bg); border-radius: 15px; 
-            box-shadow: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light); 
-            padding: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; aspect-ratio: 1 / 1; margin-bottom: 0;
+            aspect-ratio: 1 / 1;
         }
 
-        h2 { color: var(--text-main); margin-bottom: 15px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; justify-content: center; width: 100%; }
-        p { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 10px; line-height: 1.5; }
-        .hidden { display: none !important; }
+        .card-wide {
+            grid-column: span 2;
+            min-height: 280px;
+        }
+
+        .cards-row {
+            display: contents; /* Usamos a grid principal agora */
+        }
+
+
+        h2 {
+            color: var(--text-main);
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        p {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
 
         /* Botões Base */
         .neu-btn {
-            background: var(--neu-bg); border: none; padding: 10px 20px; border-radius: 8px;
-            font-size: 0.85rem; font-weight: bold; color: var(--text-main); cursor: pointer;
+            background: var(--neu-bg);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--text-main);
+            cursor: pointer;
             box-shadow: 4px 4px 8px var(--neu-dark), -4px -4px 8px var(--neu-light);
-            transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
-        .neu-btn:hover { box-shadow: 2px 2px 4px var(--neu-dark), -2px -2px 4px var(--neu-light); }
-        .neu-btn:active, .neu-btn.active { box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light); }
+
+        .neu-btn:hover {
+            box-shadow: 2px 2px 4px var(--neu-dark), -2px -2px 4px var(--neu-light);
+        }
+
+        .neu-btn:active,
+        .neu-btn.active {
+            box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);
+        }
 
         /* Inputs Base */
         .neu-input {
-            background: var(--neu-bg); border: none; padding: 12px 15px; border-radius: 8px;
-            color: var(--text-main); width: 100%; box-sizing: border-box;
-            box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light); outline: none;
+            background: var(--neu-bg);
+            border: none;
+            padding: 12px 15px;
+            border-radius: 8px;
+            color: var(--text-main);
+            width: 100%;
+            box-sizing: border-box;
+            box-shadow: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);
+            outline: none;
         }
 
         /* Toggle Switch - AÇO ESCOVADO */
-        .switch { position: relative; display: inline-block; width: 50px; height: 26px; flex-shrink: 0; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { 
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
-            background-color: var(--neu-bg); transition: .4s; border-radius: 34px; 
-            box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light); 
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+            flex-shrink: 0;
         }
-        
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--neu-bg);
+            transition: .4s;
+            border-radius: 34px;
+            box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light);
+        }
+
         /* Botão do Switch com Gradiente Cônico (Efeito Metálico/Aço Escovado) */
-        .slider:before { 
-            position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; 
-            border-radius: 50%; transition: .4s;
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            border-radius: 50%;
+            transition: .4s;
             background: conic-gradient(from 180deg at 50% 50%, #d1d5db 0deg, #f3f4f6 45deg, #d1d5db 90deg, #f3f4f6 135deg, #d1d5db 180deg, #f3f4f6 225deg, #d1d5db 270deg, #f3f4f6 315deg, #d1d5db 360deg);
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.3), inset 1px 1px 2px rgba(255,255,255,0.8);
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3), inset 1px 1px 2px rgba(255, 255, 255, 0.8);
             border: 1px solid #9ca3af;
         }
-        
+
         body.dark-mode .slider:before {
             background: conic-gradient(from 180deg at 50% 50%, #3e4652 0deg, #6b7280 45deg, #3e4652 90deg, #6b7280 135deg, #3e4652 180deg, #6b7280 225deg, #3e4652 270deg, #6b7280 315deg, #3e4652 360deg);
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.6), inset 1px 1px 2px rgba(255,255,255,0.2);
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.6), inset 1px 1px 2px rgba(255, 255, 255, 0.2);
             border: 1px solid #1c2025;
         }
 
-        input:checked + .slider:before { transform: translateX(24px); }
-        /* Quando ativo, a calha (fundo) fica azul, mas o botão metálico se mantém */
-        input:checked + .slider { background-color: #60a5fa; box-shadow: inset 3px 3px 6px rgba(0,0,0,0.2); }
+        input:checked+.slider:before {
+            transform: translateX(24px);
+        }
 
-        .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        /* Quando ativo, a calha (fundo) fica azul, mas o botão metálico se mantém */
+        input:checked+.slider {
+            background-color: #60a5fa;
+            box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Animação de Deslizamento - Corrigida para Centralização e Sombras */
+        #main-wrapper {
+            display: flex;
+            flex-wrap: nowrap;
+            width: 200%;
+            transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+            align-items: flex-start;
+        }
+
+        #main-wrapper.tutorial-active {
+            transform: translateX(-50%);
+        }
+
+        .page-container {
+            width: 50%;
+            display: flex;
+            justify-content: center;
+            padding: 40px 0;
+            box-sizing: border-box;
+        }
+
+        .content-card-wrapper {
+            width: 100%;
+            max-width: 950px; 
+            padding: 0 20px;
+            box-sizing: border-box;
+            margin: 0 auto;
+        }
+
+        /* Container Especial para o Tutorial (Full Wide) */
+        .tutorial-wrapper-wide {
+            width: 100%;
+            max-width: 100% !important; /* Espalha por toda a tela */
+            padding: 0 50px;
+            box-sizing: border-box;
+        }
+
+        #tutorial-content-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .tutorial-card {
+            background: var(--neu-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 10px 10px 20px var(--neu-dark), -10px -10px 20px var(--neu-light);
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+        }
+
+        .tutorial-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Tamanhos Variados para o Mosaico Irregular */
+        .card-medium { flex: 1 1 380px; max-width: 500px; }
+        .card-large { flex: 2 1 500px; max-width: 800px; }
+        .card-small { flex: 1 1 280px; max-width: 350px; }
+        .card-full { flex: 1 1 100%; }
+
+        .tutorial-step {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .tutorial-step h3 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+        }
+
+        .tutorial-step p {
+            font-size: 0.88rem;
+            color: var(--text-main);
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .tutorial-tag {
+            display: inline-block;
+            background: var(--neu-bg);
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            box-shadow: 3px 3px 6px var(--neu-dark), -3px -3px 6px var(--neu-light);
+            margin: 2px 4px;
+            color: var(--text-main);
+        }
+
+        .tutorial-sub-section {
+            margin-top: 15px;
+            padding-left: 20px;
+            border-left: 2px solid var(--neu-dark);
+        }
+
+        .tutorial-sub-section h4 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        .tutorial-example {
+            background: var(--neu-bg);
+            padding: 15px;
+            border-radius: 12px;
+            font-style: normal;
+            font-size: 0.82rem;
+            border: 1px solid rgba(128,128,128,0.1);
+            box-shadow: inset 2px 2px 5px var(--neu-dark), inset -2px -2px 5px var(--neu-light);
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
     </style>
 </head>
+
 <body>
-    <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 30px; padding: 0 10px;">
-        <h1 style="color: var(--text-main); font-size: 1.6rem;" data-i18n="options_title">Configurações Studio Pro</h1>
-    </div>
-
-    <div class="section">
-        <h2>
-            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-            <span data-i18n="lang_settings">Idioma / Language</span>
-        </h2>
-        <p style="text-align: center;" data-i18n="lang_desc">Selecione o idioma padrão de toda a interface da extensão. Essa alteração será aplicada instantaneamente em todos os menus e avisos visuais do Studio Pro.</p>
-        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 15px;">
-            <button class="neu-btn lang-btn" data-lang="pt-br">Português</button>
-            <button class="neu-btn lang-btn" data-lang="en">English</button>
-        </div>
-    </div>
-
-    <div class="cards-row">
+    <div style="text-align: center; margin-bottom: 40px; padding: 0 30px;">
+        <h1 style="color: var(--text-main); font-size: 2rem; margin-bottom: 20px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;" data-i18n="options_title">Configurações Studio Pro</h1>
         
-        <div class="card-square">
-            <h2>
-                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                <span>Non-Stop</span>
-            </h2>
-            <p style="flex: 1;" data-i18n="nonstop_desc">Mantém a reprodução contínua no YouTube e YouTube Music impedindo a mensagem de inatividade. Funciona 100% invisível em segundo plano.</p>
-            <label class="switch"><input type="checkbox" id="nonstop-switch"><span class="slider"></span></label>
+        <div style="display: inline-flex; align-items: center; gap: 12px; background: var(--neu-bg); padding: 10px 20px; border-radius: 15px; box-shadow: 6px 6px 12px var(--neu-dark), -6px -6px 12px var(--neu-light);">
+            <span style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); letter-spacing: 1px;">MODO TUTORIAL</span>
+            <label class="switch"><input type="checkbox" id="tutorial-mode-switch"><span class="slider"></span></label>
         </div>
-
-        <div class="card-square">
-            <h2>
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-                <span>Microfone</span>
-            </h2>
-            <p style="flex: 1;" data-i18n="step1_desc">Acesso obrigatório para que a Inteligência Artificial e os equalizadores consigam captar, analisar e processar o fluxo de áudio da aba atual.</p>
-            <button id="btn-grant-mic" class="neu-btn" data-i18n="btn_grant_mic">Liberar Acesso</button>
-            <p id="perm-status" style="margin-top: 10px; font-weight: bold; color: #10b981; margin-bottom: 0;" class="hidden" data-i18n="perm_success">Acesso Liberado! ✔️</p>
-        </div>
-
     </div>
 
-    <div class="section">
-        <h2>
-            <svg class="icon" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-            <span data-i18n="api_settings">Chave API (Gemini)</span>
-        </h2>
-        <p style="text-align: center;" data-i18n="api_desc">Insira a sua chave secreta da API do Google Gemini. Isso é necessário para habilitar as funções avançadas de masterização e os ajustes de equalização controlados por Inteligência Artificial.</p>
-        
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <div style="position: relative; flex: 1; min-width: 200px;">
-                <input type="password" id="api-key-input" class="neu-input" placeholder="AIzaSy...">
-                <div id="btn-toggle-eye" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted);">
-                    <svg id="eye-closed" class="icon" width="18" height="18" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                    <svg id="eye-open" class="icon hidden" width="18" height="18" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                </div>
-            </div>
-            
-            <button id="btn-edit-api" class="neu-btn hidden">Editar</button>
-            <button id="btn-save-api" class="neu-btn hidden">Salvar Chave</button>
-            <button id="btn-cancel-api" class="neu-btn hidden">Cancelar</button>
+    <div style="overflow: hidden; width: 100%; padding: 10px 0;">
+        <div id="main-wrapper">
+            <!-- Página 1: Configurações -->
+            <div class="page-container">
+                <div class="content-card-wrapper">
+                    <div class="settings-grid">
+                        <!-- LINHA 1: IDIOMA (2) + APOIO (1) -->
+                        <div class="card-base card-wide">
+                            <h2>
+                                <svg class="icon" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                </svg>
+                                <span data-i18n="lang_settings">Idioma / Language</span>
+                            </h2>
+                            <p style="text-align: center; max-width: 400px;" data-i18n="lang_desc">Selecione o idioma padrão de toda a interface da extensão. Essa alteração será aplicada instantaneamente.</p>
+                            <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px;">
+                                <button class="neu-btn lang-btn" data-lang="pt-br">Português</button>
+                                <button class="neu-btn lang-btn" data-lang="en">English</button>
+                            </div>
+                        </div>
+
+                        <div class="card-base card-square">
+                            <h2>
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.78-8.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                <span data-i18n="ads_title">Apoie o Projeto</span>
+                            </h2>
+                            <p style="flex: 1; font-size: 0.75rem;" data-i18n="ads_desc">Nossos anúncios são afiliados. Ao comprar pelos links, você ajuda a manter o projeto Studio Pro ativo e gratuito.</p>
+                        </div>
+
+                        <!-- LINHA 2: NON-STOP (1) + MICROFONE (1) + FEEDBACK (1) -->
+                        <div class="card-base card-square">
+                            <h2>
+                                <svg class="icon" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>Non-Stop</span>
+                            </h2>
+                            <p style="flex: 1; font-size: 0.75rem;" data-i18n="nonstop_desc">Mantém a reprodução contínua no YouTube impedindo a mensagem de inatividade. Invisível e leve.</p>
+                            <label class="switch"><input type="checkbox" id="nonstop-switch"><span class="slider"></span></label>
+                        </div>
+
+                        <div class="card-base card-square">
+                            <h2>
+                                <svg class="icon" viewBox="0 0 24 24">
+                                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                                </svg>
+                                <span>Microfone</span>
+                            </h2>
+                            <p style="flex: 1; font-size: 0.75rem;" data-i18n="step1_desc">Acesso obrigatório para que a IA e os equalizadores consigam captar e processar o áudio.</p>
+                            <button id="btn-grant-mic" class="neu-btn" data-i18n="btn_grant_mic" style="font-size: 0.75rem; padding: 8px 12px;">Liberar</button>
+                            <p id="perm-status" style="margin-top: 10px; font-weight: bold; color: #10b981; margin-bottom: 0; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 8px;" class="hidden">
+                                <svg class="icon" style="width: 16px; height: 16px; color: white; background: #10b981; border-radius: 50%; padding: 2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span data-i18n="perm_success">Acesso Liberado</span>
+                            </p>
+                        </div>
+
+                        <div class="card-base card-square">
+                            <h2>
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                <span data-i18n="feedback_title">Feedback</span>
+                            </h2>
+                            <p style="flex: 1; font-size: 0.75rem;" data-i18n="feedback_desc">Relate problemas ou dê sugestões. Sua opinião é fundamental para melhorarmos nossas ferramentas.</p>
+                        </div>
+
+                        <!-- LINHA 3: API KEY (2) + CONTATO (1) -->
+                        <div class="card-base card-wide">
+                            <h2>
+                                <svg class="icon" viewBox="0 0 24 24">
+                                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                                </svg>
+                                <span data-i18n="api_settings">Chave API (Gemini)</span>
+                            </h2>
+                            <p style="text-align: center; max-width: 450px;" data-i18n="api_desc">Insira sua chave para habilitar masterização avançada e ajustes controlados por IA.</p>
+                            <div style="display: flex; gap: 10px; align-items: center; width: 100%; max-width: 500px;">
+                                <div style="position: relative; flex: 1;">
+                                    <input type="password" id="api-key-input" class="neu-input" placeholder="AIzaSy...">
+                                    <div id="btn-toggle-eye" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted);">
+                                        <svg id="eye-closed" class="icon" width="18" height="18" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                        <svg id="eye-open" class="icon hidden" width="18" height="18" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    </div>
+                                </div>
+                                <button id="btn-edit-api" class="neu-btn hidden">Editar</button>
+                                <button id="btn-save-api" class="neu-btn hidden">Salvar</button>
+                                <button id="btn-cancel-api" class="neu-btn hidden">X</button>
+                            </div>
+                            <div id="btn-tutorial-api" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; margin-top: 15px; transition: all 0.2s ease; padding: 5px 10px; border-radius: 8px;">
+                                <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                <span>Tutorial API</span>
+                            </div>
+                            <p id="api-status" style="margin-top: 5px; font-weight: bold; color: #10b981;" class="hidden" data-i18n="saved_success">Salvo!</p>
+                        </div>
+
+                        <div class="card-base card-square">
+                            <h2>
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                <span data-i18n="contact_title">Contato</span>
+                            </h2>
+                            <p style="flex: 1; font-size: 0.75rem;" data-i18n="contact_desc">Dúvidas ou parcerias comerciais? Entre em contato direto com nossa equipe técnica.</p>
+                        </div>
+                    </div> <!-- settings-grid -->
+                </div> <!-- content-card-wrapper -->
+            </div> <!-- page-container 1 -->
+
+            <!-- Página 2: Super Tutorial Enciclopédico Wide -->
+            <div class="page-container">
+                <div class="tutorial-wrapper-wide">
+                    <h2 style="font-size: 2.2rem; margin-bottom: 50px; text-align: center; font-weight: 900; letter-spacing: 6px; opacity: 0.9; text-transform: uppercase;">
+                        Enciclopédia Técnica Studio Pro
+                    </h2>
+                    
+                    <div id="tutorial-content-container">
+                        <!-- 0. APOIE O PROJETO (DESTAQUE) -->
+                        <div class="tutorial-card card-full" style="border: 2px solid #ef4444; background: rgba(239, 68, 68, 0.05);">
+                            <div class="tutorial-step">
+                                <h3 style="color: #ef4444;"><svg class="icon" style="fill: #ef4444; stroke: none;" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg> APOIE O STUDIO PRO</h3>
+                                <p>O Studio Pro é mantido por uma equipe pequena e apaixonada. Para mantermos a ferramenta 100% gratuita e sem anúncios invasivos, utilizamos links de afiliados em nossa aba de promoções. Se você gosta do nosso trabalho, considere nos apoiar realizando suas compras através dos nossos links oficiais. Isso nos ajuda a pagar os custos de servidor e IA!</p>
+                            </div>
+                        </div>
+
+                        <!-- 1. O CONCEITO DE SOM -->
+                        <div class="tutorial-card card-full">
+                            <div class="tutorial-step">
+                                <h3><svg class="icon" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"></path></svg> O QUE É O STUDIO PRO?</h3>
+                                <p>O Studio Pro não é apenas um equalizador comum; é uma estação de processamento de áudio digital (DSP) completa dentro do seu navegador. Imagine que o áudio que sai de abas como YouTube ou Spotify é uma peça de argila bruta. O Studio Pro atua como as ferramentas de um mestre escultor, permitindo moldar cada detalhe do som. Nós interceptamos o sinal digital antes dele chegar aos seus ouvidos, aplicamos algoritmos complexos de filtragem e compressão em tempo real, e entregamos um áudio cristalino e personalizado para qualquer dispositivo de saída, seja ele um fone de ouvido de alta fidelidade ou uma simples caixa de som Bluetooth.</p>
+                            </div>
+                        </div>
+
+                        <!-- 2. EQUALIZADOR (O MAESTRO) -->
+                        <div class="tutorial-card card-large">
+                            <div class="tutorial-step">
+                                <h3><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> 01. O EQUALIZADOR (Pincéis do Som)</h3>
+                                <p>O equalizador divide o som em 24 "fatias" chamadas frequências. É como ter 24 controles de volume separados para cada instrumento da música.</p>
+                                <div class="tutorial-sub-section">
+                                    <h4>Graves (Bass) - O Peso</h4>
+                                    <p>As barras da esquerda controlam o "chão" da música. <span class="tutorial-tag">20Hz a 250Hz</span>. Aumente aqui para sentir o bumbo da bateria e o peso do contrabaixo no peito.</p>
+                                    <h4>Médios (Mids) - A Presença</h4>
+                                    <p>O centro do gráfico. <span class="tutorial-tag">250Hz a 4kHz</span>. É onde vive a voz humana e as guitarras. Se a voz estiver "abafada", suba os médios. Se estiver "metálica" demais, baixe um pouco.</p>
+                                    <h4>Agudos (Highs) - O Brilho</h4>
+                                    <p>As barras da direita. <span class="tutorial-tag">4kHz a 20kHz</span>. Controlam os pratos da bateria, o "ar" da voz e os detalhes finos. Trazem clareza e definição.</p>
+                                </div>
+                                <div class="tutorial-example"><strong>Dica de Mestre:</strong> No modo Curvas, use o Scroll do mouse para ajustar o "Q". Um Q pequeno afeta muitas notas ao redor; um Q grande faz um corte cirúrgico em apenas um apito ou ruído chato.</div>
+                            </div>
+                        </div>
+
+                        <!-- 3. COMPRESSOR (O ESCUDO) -->
+                        <div class="tutorial-card card-medium">
+                            <div class="tutorial-step">
+                                <h3><svg class="icon" viewBox="0 0 24 24"><path d="M21 12H3m18 0l-4-4m4 4l-4 4"></path></svg> 02. COMPRESSOR (O Vigilante)</h3>
+                                <p>O compressor é como um "dedo automático" no botão de volume que age em milissegundos. Ele serve para equilibrar sons que mudam muito de volume (como filmes de ação).</p>
+                                <div class="tutorial-sub-section">
+                                    <h4>Como ele te ajuda?</h4>
+                                    <p>Ele "abaixa" as explosões que machucam o ouvido e "levanta" os sussurros que você não consegue ouvir. O resultado é um som constante, denso e profissional.</p>
+                                    <h4>Volume Booster</h4>
+                                    <p>Use o <span class="tutorial-tag">Booster</span> apenas se o vídeo original estiver gravado muito baixo. Ele empurra o volume além do limite normal sem distorcer, graças ao nosso Limiter de segurança.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. AUDIO SYNC (O RELÓGIO) -->
+                        <div class="tutorial-card card-medium">
+                            <div class="tutorial-step">
+                                <h3><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> 03. AUDIO SYNC (Ajuste de Atraso)</h3>
+                                <p>Sabe quando a pessoa fala no vídeo e o som só chega depois no seu fone Bluetooth? Isso é o "Lag".</p>
+                                <div class="tutorial-sub-section">
+                                    <h4>Como sincronizar?</h4>
+                                    <p>O Studio Pro resolve isso atrasando o vídeo para que ele "espere" o áudio chegar no seu fone. Arraste o slider devagar. Comece em <span class="tutorial-tag">100ms</span> e vá subindo até que o movimento dos lábios do ator "encaixe" perfeitamente com a fala.</p>
+                                </div>
+                                <div class="tutorial-example"><strong>Presets:</strong> Use os botões salvos para alternar entre seu fone de ouvido (ex: 200ms) e sua caixa Bluetooth (ex: 350ms) com um clique.</div>
+                            </div>
+                        </div>
+
+                        <!-- 5. INTELIGÊNCIA ARTIFICIAL -->
+                        <div class="tutorial-card card-large">
+                            <div class="tutorial-step">
+                                <h3><svg class="icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path><path d="M12 6v6l4 2"></path></svg> 04. INTELIGÊNCIA ARTIFICIAL (IA GEMINI)</h3>
+                                <p>Não sabe mexer em frequências? Peça para a IA. Ela entende português e inglês como um ser humano.</p>
+                                <div class="tutorial-sub-section">
+                                    <h4>Exemplos de Comandos</h4>
+                                    <p>• "Quero um som de cinema, com graves que tremem a mesa e vozes limpas."</p>
+                                    <p>• "Remova o som de rádio e deixe o áudio cristalino como um CD."</p>
+                                    <h4>Nova Curva vs Acumular</h4>
+                                    <p>O switch <span class="tutorial-tag">Nova Curva</span> decide se a IA joga fora o seu ajuste atual antes de começar ou se ela tenta "ajudar" a melhorar o que você já fez.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6. GESTÃO DE BIBLIOTECA -->
+                        <div class="tutorial-card card-medium">
+                            <div class="tutorial-step">
+                                <h3><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5l5 5 5-5m-5 5V3"></path></svg> 05. SEGURANÇA E BACKUP</h3>
+                                <p>Suas configurações são valiosas. Não as perca!</p>
+                                <div class="tutorial-sub-section">
+                                    <h4>Download em Lote</h4>
+                                    <p>É o seu "Seguro de Vida". Clique em <span class="tutorial-tag">Batch Download</span> para baixar TODA a sua biblioteca de presets em um único arquivo. Se formatar o PC, basta subir esse arquivo e tudo volta ao normal em segundos.</p>
+                                    <h4>Organização Profissional</h4>
+                                    <p>No menu de três pontinhos, você pode renomear seus estilos favoritos e organizar a ordem por importância (ex: Deixe o 'Rock' no topo da lista).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 7. ROTEAMENTO -->
+                        <div class="tutorial-card card-medium">
+                            <div class="tutorial-step">
+                                <h3><svg class="icon" viewBox="0 0 24 24"><path d="M8.85 17.85L3.5 12.5l5.35-5.35M15.15 17.85l5.35-5.35-5.35-5.35"></path></svg> 06. ROTEAMENTO DUPLO (Dual Output)</h3>
+                                <p>Envie o som para dois lugares ao mesmo tempo.</p>
+                                <div class="tutorial-sub-section">
+                                    <h4>Como usar?</h4>
+                                    <p>Selecione um dispositivo no canal 1 e outro no canal 2. Agora, sua música toca no fone e na caixa simultaneamente. O botão <span class="tutorial-tag">Bypass</span> permite desativar o equalizador em uma das saídas (útil para comparar o som original com o seu som processado).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-full" style="text-align: center; padding: 60px 0; opacity: 0.3; font-size: 0.8rem; font-weight: 900; letter-spacing: 8px;">
+                            STUDIO PRO <span id="app-version-display">v6.24.9</span> - HIGH FIDELITY AUDIO ENGINE
+                        </div>
+                    </div> <!-- tutorial-content-container -->
+                </div> <!-- tutorial-wrapper-wide -->
+            </div> <!-- page-container 2 -->
+        </div> <!-- main-wrapper -->
+    </div> <!-- overflow-hidden container -->
+
+    <!-- Tutorial Overlay -->
+    <div id="tutorial-overlay"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div
+            style="background: var(--neu-bg); padding: 25px; border-radius: 15px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 10px 10px 20px var(--neu-dark), -10px -10px 20px var(--neu-light); text-align: center; position: relative;">
+            <button id="btn-close-tutorial"
+                style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; line-height: 1;">&times;</button>
+
+            <h3 style="margin-top: 0; color: var(--text-main); font-size: 1.2rem; margin-bottom: 20px;">Como obter sua
+                API Key</h3>
+
+            <img src="tutorial_api.png" alt="Tutorial API Gemini"
+                style="width: 100%; height: auto; border-radius: 10px; border: 2px solid var(--neu-dark); margin-bottom: 20px; box-shadow: 4px 4px 8px rgba(0,0,0,0.1);">
+
+            <p style="font-size: 0.9rem; color: var(--text-main); text-align: left; margin-bottom: 12px;">
+                <strong>1.</strong> Acesse o site <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                    style="color: #3b82f6; text-decoration: none; font-weight: bold;">Google AI Studio</a>.
+            </p>
+            <p style="font-size: 0.9rem; color: var(--text-main); text-align: left; margin-bottom: 12px;">
+                <strong>2.</strong> Faça login com sua conta do Google e clique no botão <strong>"Create API
+                    key"</strong>.
+            </p>
+            <p style="font-size: 0.9rem; color: var(--text-main); text-align: left; margin-bottom: 20px;">
+                <strong>3.</strong> Copie o código longo gerado e cole no campo de texto aqui da extensão!
+            </p>
+
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="neu-btn"
+                style="text-decoration: none; display: inline-flex; border: 1px solid #3b82f6; color: #3b82f6;">
+                Abrir Site Agora
+            </a>
         </div>
-        <p id="api-status" style="margin-top: 10px; font-weight: bold; text-align: center; color: var(--text-main);" class="hidden" data-i18n="saved_success">Salvo com sucesso!</p>
     </div>
 
     <script src="options.js"></script>
 </body>
+
 </html>

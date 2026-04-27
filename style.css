@@ -1,13 +1,13 @@
 /* --- Reset e Paletas NEUMORFISMO (Light e Dark) --- */
 :root {
-    /* Modo Claro (Padrão) */
-    --neu-bg: #f0f0f3; 
+    /* Modo Claro (Padrão) - Contraste Aumentado */
+    --neu-bg: #e0e1e9; 
     --neu-light: #ffffff;
-    --neu-dark: #c8c8d0;
-    --text-main: #374151;
-    --text-muted: #6b7280;
-    --icon-dark: #4b5563;
-    --accent-dark: #374151;
+    --neu-dark: #a8a9b3;
+    --text-main: #111827;
+    --text-muted: #374151;
+    --icon-dark: #1f2937;
+    --accent-dark: #111827;
 }
 
 body.dark-mode {
@@ -89,12 +89,12 @@ canvas#eqGraph { background: transparent; border: none; display: block; width: 1
     transition: background-color 0.1s ease-out, box-shadow 0.1s ease-out;
 }
 body.dark-mode .db-meter-clip { background-color: #2a0000; }
-.db-meter-clip.active { background-color: #ff3333; box-shadow: 0 0 5px #ff3333, 0 0 10px #ff0000; }
+.db-meter-clip.active, body.dark-mode .db-meter-clip.active { background-color: #ff3333; box-shadow: 0 0 5px #ff3333, 0 0 10px #ff0000; }
 
 .db-meter-fill {
     width: 100%; height: 0%;
     background: linear-gradient(to top, #6b7280 0%, #9ca3af 60%, #d1d5db 100%);
-    border-radius: 3px; transition: height 0.1s ease-out; box-shadow: 0 -1px 2px rgba(0,0,0,0.2);
+    border-radius: 3px; box-shadow: 0 -1px 2px rgba(0,0,0,0.2);
 }
 body.dark-mode .db-meter-fill { background: linear-gradient(to top, #374151 0%, #6b7280 60%, #9ca3af 100%); }
 
@@ -220,7 +220,7 @@ textarea#ai-input { resize: none; overflow-y: hidden; min-height: 40px; line-hei
 .metal-slider:focus { outline: none; }
 .metal-slider::-webkit-slider-thumb { 
     -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; 
-    background: radial-gradient(circle at 50% 50%, #ffffff 0%, #e5e5e5 40%, #cccccc 100%); 
+    background: linear-gradient(135deg, #e6e6e6 0%, #cccccc 40%, #999999 50%, #b3b3b3 60%, #f2f2f2 100%); 
     border: 1px solid #777; box-shadow: 0 2px 4px rgba(0,0,0,0.5); cursor: pointer; margin-top: 0px; 
 }
 
@@ -237,8 +237,11 @@ textarea#ai-input { resize: none; overflow-y: hidden; min-height: 40px; line-hei
 /* Dropdown, Separadores e Pontinhos */
 .custom-select-container { position: relative; width: 100%; user-select: none; }
 .custom-options { 
-    position: absolute; top: 100%; left: 0; right: 0; background: var(--neu-bg); border: none; border-radius: 12px; margin-top: 8px; 
-    max-height: 280px; overflow-y: auto; z-index: 100; box-shadow: 8px 8px 16px var(--neu-dark), -8px -8px 16px var(--neu-light); display: none; transition: background 0.3s;
+    position: fixed; top: 30px; bottom: 30px; left: 20px; right: 20px; 
+    background: var(--neu-bg); border: 1px solid rgba(128,128,128,0.1); border-radius: 15px; 
+    max-height: none; overflow-y: auto; z-index: 9999; margin-top: 0;
+    box-shadow: 15px 15px 30px rgba(0,0,0,0.6), 0 0 0 1000px rgba(0,0,0,0.6); 
+    display: none; transition: background 0.3s;
 }
 .custom-options.open { display: block; }
 .custom-option { display: flex; justify-content: space-between; align-items: stretch; font-size: 0.85rem; border-bottom: 1px solid rgba(128,128,128,0.05); padding: 0; }
@@ -285,7 +288,12 @@ hr { border: none; height: 2px; background: transparent; margin: 20px 0; box-sha
 .input-mic-container { position: relative; width: 100%; }
 .btn-mic { position: absolute; right: 12px; top: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 5px; display: flex; filter: drop-shadow(1px 1px 1px var(--neu-light)); }
 .btn-mic:hover { color: var(--text-main); transform: scale(1.1); }
-.btn-mic.recording { color: var(--text-main); animation: pulse 1.5s infinite; }
+.btn-mic.recording { color: #ef4444; animation: pulseRed 1.5s infinite; }
+@keyframes pulseRed {
+    0% { filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.5)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.9)); transform: scale(1.1); }
+    100% { filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.5)); transform: scale(1); }
+}
 .status-text { font-size: 0.75rem; margin-top: 5px; }
 #modal-overlay, #permission-overlay, #info-modal-overlay, #download-modal-overlay { 
     position: fixed; 
@@ -396,7 +404,17 @@ body.dark-mode .curves-text-container strong { color: #e5e7eb; }
 
 .pip-screen {
     transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transform-origin: center;
+}
+.pip-monitor {
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transform-origin: center;
+}
+.btn-miniplayer-styled:hover .pip-monitor {
+    transform: scale(0.85);
+    opacity: 0.4;
 }
 .btn-miniplayer-styled:hover .pip-screen {
-    width: 8px; height: 6px; x: 12px; y: 12px; fill-opacity: 0.5;
+    transform: translate(-9px, -4px) scale(1.4);
+    fill: var(--text-main);
 }

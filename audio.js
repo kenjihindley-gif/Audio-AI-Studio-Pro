@@ -45,16 +45,29 @@ async function createEngine(tabId, streamId) {
     out2Wet.connect(out2Vol);
     out2Dry.connect(out2Vol);
 
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 1024; 
-    analyser.smoothingTimeConstant = 0.85; 
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    out1Vol.connect(analyser);
+    const analyserWet = audioCtx.createAnalyser();
+    analyserWet.fftSize = 1024; 
+    analyserWet.smoothingTimeConstant = 0.85; 
+    const dataArrayWet = new Uint8Array(analyserWet.frequencyBinCount);
+    out1Vol.connect(analyserWet);
 
-    out1Vol.connect(audioCtx.destination); 
+    const analyserDry = audioCtx.createAnalyser();
+    analyserDry.fftSize = 1024;
+    analyserDry.smoothingTimeConstant = 0.85;
+    const dataArrayDry = new Uint8Array(analyserDry.frequencyBinCount);
+
+    const delayNode1 = audioCtx.createDelay(2.0);
+    delayNode1.delayTime.setValueAtTime(0, audioCtx.currentTime);
+    
+    const delayNode2 = audioCtx.createDelay(2.0);
+    delayNode2.delayTime.setValueAtTime(0, audioCtx.currentTime);
+
+    out1Vol.connect(delayNode1);
+    delayNode1.connect(audioCtx.destination); 
 
     const secondaryDestination = audioCtx.createMediaStreamDestination();
-    out2Vol.connect(secondaryDestination); 
+    out2Vol.connect(delayNode2);
+    delayNode2.connect(secondaryDestination); 
     
     const secondaryAudioElement = new Audio();
     secondaryAudioElement.srcObject = secondaryDestination.stream;
@@ -66,14 +79,14 @@ async function createEngine(tabId, streamId) {
 
     const engine = {
         audioCtx, filters, boosterGainNode, streamSource: null,
-        out1Wet, out1Dry, out1Vol, out2Wet, out2Dry, out2Vol,
-        isPowerOn: true, points: [], boosterVolume: 100, 
+        out1Wet, out1Dry, out1Vol, out2Wet, out2Dry, out2Vol, delayNode1, delayNode2,
+        isPowerOn: true, points: [], boosterVolume: 100, compressorAmount: 0, audioSyncAmount: 0,
         routing: {
             deviceId: "", secondaryDeviceId: "",
             out1Vol: 100, out2Vol: 100,
             out1EffectOn: true, out2EffectOn: true
         },
-        secondaryAudioElement, analyser, dataArray, myFrequencyArray,
+        secondaryAudioElement, analyserWet, dataArrayWet, analyserDry, dataArrayDry, myFrequencyArray,
         magnitudeResponse: new Float32Array(numFrequencies), phaseResponse: new Float32Array(numFrequencies)
     };
     
@@ -84,10 +97,25 @@ async function createEngine(tabId, streamId) {
             audio: { mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId } }
         });
         const source = audioCtx.createMediaStreamSource(stream);
-        source.connect(filters[0]); 
+        
+        // Compressor Inicial: Comprime o som original antes do EQ para evitar clipagem (Headroom)
+        const preCompressor = audioCtx.createDynamicsCompressor();
+        preCompressor.threshold.setValueAtTime(0, audioCtx.currentTime); // Inicia desligado (0dB)
+        preCompressor.knee.setValueAtTime(0, audioCtx.currentTime);      // Hard knee (não afeta o que está abaixo do teto)
+        preCompressor.ratio.setValueAtTime(20, audioCtx.currentTime);    // Ratio 20:1 (Atua como Limiter puro)
+        preCompressor.attack.setValueAtTime(0.002, audioCtx.currentTime);// Ataque imediato (2ms) para cortar picos rápidos
+        preCompressor.release.setValueAtTime(0.05, audioCtx.currentTime);// Solta rápido (50ms) para não esmagar a música
+
+        source.connect(analyserDry); // Conecta o som original (cru) no analyser fantasma
+        source.connect(preCompressor);
+        preCompressor.connect(filters[0]); 
+        
+        // O sinal Dry (sem efeito) continua puxando direto da fonte intocada
         source.connect(out1Dry);
         source.connect(out2Dry);
+        
         engine.streamSource = source;
+        engine.preCompressor = preCompressor;
         
         chrome.storage.local.get(['isAppOn'], (res) => {
             if (res.isAppOn === false) { engine.isPowerOn = false; updateRoutingState(engine); }
@@ -154,7 +182,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     filter.frequency.setTargetAtTime(pt.f, now, 0.03); filter.gain.setTargetAtTime(pt.g, now, 0.03); filter.Q.setTargetAtTime(pt.q, now, 0.03);
                 } else { filter.gain.setTargetAtTime(0, now, 0.03); }
             }
-            setTimeout(() => calculateAndSendGraphData(tabId), 60);
+            setTimeout(() => calculateAndSendGraphData(tabId), 150);
             sendResponse({ status: "ok" }); break;
 
         case 'set_booster':
@@ -165,9 +193,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             sendResponse({ status: "ok" }); break;
 
+        case 'set_compressor':
+            engine.compressorAmount = message.amount;
+            if (engine.preCompressor) {
+                const thresh = -30 * (message.amount / 100);
+                engine.preCompressor.threshold.setTargetAtTime(thresh, engine.audioCtx.currentTime, 0.05);
+            }
+            sendResponse({ status: "ok" }); break;
+
+        case 'set_audio_sync':
+            engine.audioSyncAmount = message.amount;
+            if (engine.delayNode1 && engine.delayNode2) {
+                const delaySecs = message.amount / 1000.0;
+                engine.delayNode1.delayTime.setTargetAtTime(delaySecs, engine.audioCtx.currentTime, 0.05);
+                engine.delayNode2.delayTime.setTargetAtTime(delaySecs, engine.audioCtx.currentTime, 0.05);
+            }
+            sendResponse({ status: "ok" }); break;
+
         case 'request_graph_update':
             calculateAndSendGraphData(tabId);
-            chrome.runtime.sendMessage({ action: 'sync_popup_state', points: engine.points, boosterVolume: engine.boosterVolume, routing: engine.routing, tabId: tabId });
+            chrome.runtime.sendMessage({ action: 'sync_popup_state', points: engine.points, boosterVolume: engine.boosterVolume, compressorAmount: engine.compressorAmount, audioSyncAmount: engine.audioSyncAmount, routing: engine.routing, tabId: tabId });
             sendResponse({ status: "ok" }); break;
 
         case 'set_routing_params': 
@@ -196,10 +241,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             engine.isPowerOn = message.isPowerOn; updateRoutingState(engine); sendResponse({ status: "ok" }); break;
 
         case 'get_spectrum':
-            if (engine.analyser && engine.dataArray) {
-                engine.analyser.getByteFrequencyData(engine.dataArray);
-                sendResponse({ data: Array.from(engine.dataArray), sampleRate: engine.audioCtx.sampleRate });
-            } else { sendResponse({ data: [], sampleRate: 48000 }); }
+            if (engine.analyserWet && engine.dataArrayWet && engine.analyserDry && engine.dataArrayDry) {
+                engine.analyserWet.getByteFrequencyData(engine.dataArrayWet);
+                engine.analyserDry.getByteFrequencyData(engine.dataArrayDry);
+                
+                if (!engine.timeDataWet) engine.timeDataWet = new Uint8Array(engine.analyserWet.fftSize);
+                engine.analyserWet.getByteTimeDomainData(engine.timeDataWet);
+                let maxDiff = 0;
+                for(let i=0; i<engine.timeDataWet.length; i++) {
+                    let diff = Math.abs(engine.timeDataWet[i] - 128);
+                    if(diff > maxDiff) maxDiff = diff;
+                }
+                const peakTimeDomain = maxDiff / 128.0;
+                
+                let reduction = 0;
+                if (engine.preCompressor && typeof engine.preCompressor.reduction === 'number') {
+                    reduction = engine.preCompressor.reduction;
+                } else if (engine.preCompressor && engine.preCompressor.reduction && typeof engine.preCompressor.reduction.value === 'number') {
+                    reduction = engine.preCompressor.reduction.value;
+                }
+                sendResponse({ 
+                    dataWet: Array.from(engine.dataArrayWet), 
+                    dataDry: Array.from(engine.dataArrayDry),
+                    sampleRate: engine.audioCtx.sampleRate, 
+                    reduction: reduction,
+                    peakTimeDomain: peakTimeDomain
+                });
+            } else { sendResponse({ dataWet: [], dataDry: [], sampleRate: 48000, reduction: 0, peakTimeDomain: 0 }); }
             break;
             
         default: sendResponse({ status: "unknown" });

@@ -2,34 +2,46 @@ const dict = {
     'pt-br': {
         'options_title': 'Configurações Studio Pro',
         'lang_settings': 'Idioma / Language',
-        'lang_desc': 'Selecione o idioma padrão de toda a interface da extensão. Essa alteração será aplicada instantaneamente em todos os menus e avisos visuais do Studio Pro.',
-        'nonstop_desc': 'Mantém a reprodução contínua no YouTube e YouTube Music impedindo a mensagem de inatividade. Funciona 100% invisível em segundo plano.',
-        'step1_desc': 'Acesso obrigatório para que a Inteligência Artificial e os equalizadores consigam captar, analisar e processar o fluxo de áudio da aba atual.',
+        'lang_desc': 'Escolha o idioma principal para toda a interface do Studio Pro. Esta configuração altera menus, avisos e as instruções da Inteligência Artificial em tempo real, garantindo uma experiência personalizada e fluida em sua língua preferida.',
+        'nonstop_desc': 'O motor Non-Stop elimina interrupções irritantes no YouTube e YouTube Music. Ele simula atividade de forma inteligente e invisível, impedindo que o player pause sozinho por inatividade, permitindo que sua música nunca pare.',
+        'step1_desc': 'Para que nosso motor de áudio de alta fidelidade e a IA Gemini funcionem, é necessário captar o fluxo de áudio da aba. Esta permissão é técnica e segura: o Studio Pro processa o som localmente para aplicar os equalizadores em tempo real.',
         'btn_grant_mic': 'Liberar Acesso',
-        'perm_success': 'Acesso Liberado! ✔️',
+        'perm_success': 'Acesso Liberado',
         'api_settings': 'Chave API (Gemini)',
-        'api_desc': 'Insira a sua chave secreta da API do Google Gemini. Isso é necessário para habilitar as funções avançadas de masterização e os ajustes de equalização controlados por Inteligência Artificial.',
+        'api_desc': 'A Inteligência Artificial avançada requer uma chave do Google Gemini. Ao configurar sua API Key, você desbloqueia o processamento de masterização em nuvem, permitindo ajustes dinâmicos e precisos baseados em linguagem natural.',
         'btn_save': 'Salvar Chave',
         'btn_edit': 'Editar',
         'btn_cancel': 'Cancelar',
-        'saved_success': 'Salvo com sucesso!'
+        'saved_success': 'Salvo com sucesso!',
+        'ads_title': 'Apoie o Projeto',
+        'ads_desc': 'O Studio Pro é um projeto independente. Todos os anúncios exibidos são links de nossos afiliados; ao realizar compras através deles, você gera uma comissão que financia nossos servidores e o desenvolvimento, mantendo o projeto gratuito.',
+        'feedback_title': 'Relatar Problema',
+        'feedback_desc': 'Encontrou um erro ou tem uma ideia brilhante? Sua participação é o que faz o Studio Pro evoluir. Use nossos canais oficiais para relatar problemas técnicos ou sugerir melhorias que você gostaria de ver nas próximas versões.',
+        'contact_title': 'Contato e Parcerias',
+        'contact_desc': 'Estamos abertos a propostas comerciais, parcerias de desenvolvimento ou suporte técnico especializado. Se você é um criador de conteúdo ou empresa, entre em contato diretamente com nosso time para colaborações profissionais.'
     },
     'en': {
         'options_title': 'Studio Pro Settings',
         'lang_settings': 'Language / Idioma',
-        'lang_desc': 'Select the default interface language. This change will be instantly applied across all menus and visual prompts in Studio Pro.',
-        'nonstop_desc': 'Maintains continuous playback on YouTube and YouTube Music by preventing the inactivity prompt. Works 100% invisibly in the background.',
-        'step1_desc': 'Mandatory access so that the Artificial Intelligence and equalizers can capture, analyze, and process the audio stream of the current tab.',
+        'lang_desc': 'Choose the primary language for the entire Studio Pro interface. This setting changes menus, warnings, and AI instructions in real-time, ensuring a personalized and fluid experience in your preferred language.',
+        'nonstop_desc': 'The Non-Stop engine eliminates annoying interruptions on YouTube and YouTube Music. It intelligently and invisibly simulates activity, preventing the player from pausing on its own due to inactivity, so your music never stops.',
+        'step1_desc': 'For our high-fidelity audio engine and Gemini AI to function, it is necessary to capture the tab\'s audio stream. This permission is technical and secure: Studio Pro processes the sound locally to apply equalizers in real-time.',
         'btn_grant_mic': 'Grant Access',
-        'perm_success': 'Access Granted! ✔️',
+        'perm_success': 'Access Granted',
         'api_settings': 'API Key (Gemini)',
-        'api_desc': 'Enter your Google Gemini API secret key. This is required to enable advanced mastering functions and AI-controlled equalization adjustments.',
+        'api_desc': 'Advanced Artificial Intelligence requires a Google Gemini key. By setting up your API Key, you unlock cloud mastering processing, allowing for dynamic and precise adjustments based on natural language commands.',
         'btn_save': 'Save Key',
         'btn_edit': 'Edit',
         'btn_cancel': 'Cancel',
-        'saved_success': 'Saved successfully!'
+        'saved_success': 'Saved successfully!',
+        'ads_title': 'Support the Project',
+        'ads_desc': 'Studio Pro is an independent project. All ads displayed are affiliate links; by making purchases through them, you generate a commission that funds our servers and development, keeping the project 100% free for everyone.',
+        'feedback_title': 'Report an Issue',
+        'feedback_desc': 'Found a bug or have a brilliant idea? Your participation is what makes Studio Pro evolve. Use our official channels to report technical issues or suggest improvements you\'d like to see in future versions.',
+        'contact_title': 'Contact & Partnerships',
+        'contact_desc': 'We are open to commercial proposals, development partnerships, or specialized technical support. If you are a content creator or company, contact our team directly for professional collaborations.'
     }
-};
+}
 
 let currentLang = 'pt-br';
 let savedApiKey = '';
@@ -190,3 +202,45 @@ btnSaveApi.addEventListener('click', () => {
         setTimeout(() => apiStatus.classList.add('hidden'), 3000);
     });
 });
+
+// Tutorial Modal Logic
+const btnTutorialApi = document.getElementById('btn-tutorial-api');
+const tutorialOverlay = document.getElementById('tutorial-overlay');
+const btnCloseTutorial = document.getElementById('btn-close-tutorial');
+const tutorialModeSwitch = document.getElementById('tutorial-mode-switch');
+const mainWrapper = document.getElementById('main-wrapper');
+
+if (tutorialModeSwitch) {
+    tutorialModeSwitch.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            mainWrapper.classList.add('tutorial-active');
+        } else {
+            mainWrapper.classList.remove('tutorial-active');
+        }
+    });
+}
+
+if (btnTutorialApi && tutorialOverlay) {
+    // Dynamic Versioning
+    const versionDisplay = document.getElementById('app-version-display');
+    if (versionDisplay) {
+        versionDisplay.textContent = 'v' + chrome.runtime.getManifest().version;
+    }
+
+    btnTutorialApi.addEventListener('click', () => {
+        tutorialOverlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    });
+
+    btnCloseTutorial.addEventListener('click', () => {
+        tutorialOverlay.style.display = 'none';
+        document.body.style.overflow = '';
+    });
+
+    tutorialOverlay.addEventListener('click', (e) => {
+        if (e.target === tutorialOverlay) {
+            tutorialOverlay.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    });
+}
